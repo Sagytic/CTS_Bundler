@@ -1,0 +1,851 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+:root {
+  --bg-main: #131314;
+  --bg-sidebar: #1e1e1f;
+  --bg-chat-user: #2b2b2b;
+  --bg-chat-ai: transparent;
+  --text-main: #e3e3e3;
+  --text-muted: #8e8e8e;
+  --border-color: #333333;
+  --accent-color: #a8cdff;
+  --font-family: 'Noto Sans KR', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: var(--font-family);
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 좌우 분할 레이아웃 */
+.app-layout {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* 사이드바 영역 (햄버거 메뉴만 포함) */
+.sidebar {
+  background-color: var(--bg-sidebar);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  height: 100vh;
+  flex-shrink: 0;
+}
+
+.sidebar.open {
+  width: 280px;
+}
+
+.sidebar.closed {
+  width: 68px;
+}
+
+/* 사이드바 헤더 (햄버거 버튼 전용) */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  height: 60px;
+  padding: 0 12px;
+  margin-top: 10px;
+}
+
+.menu-toggle {
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  font-size: 24px;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 44px;
+  height: 44px;
+  transition: background-color 0.2s;
+}
+
+.menu-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  cursor: pointer;
+  border-radius: 8px;
+  color: var(--text-main);
+  transition: background-color 0.2s;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.menu-item.active {
+  background-color: rgba(168, 205, 255, 0.1);
+  color: var(--accent-color);
+}
+
+.menu-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.menu-text {
+  font-size: 15px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.sidebar.open .menu-text {
+  opacity: 1;
+}
+
+/* 접힌 사이드바: 라벨은 레이아웃에서 제외하고 아이콘만 동일하게 중앙 정렬 */
+.sidebar.closed .menu-text {
+  display: none;
+}
+
+.sidebar.closed .menu-item {
+  justify-content: center;
+  gap: 0;
+}
+
+.sidebar-footer {
+  padding: 15px 10px;
+  border-top: 1px solid var(--border-color);
+  cursor: pointer;
+}
+
+.sidebar-footer:hover .menu-item {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.menu-item-settings {
+  background: transparent;
+}
+
+/* 메인 컨텐츠 영역 */
+.main-wrapper {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+  background-color: var(--bg-main);
+  /* overflow:hidden 은 fixed 모달(Analyzer 등)을 클리핑할 수 있음. 가로만 제한 */
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+/* 상단 네비게이션 (로고 전용) */
+.top-nav {
+  display: flex;
+  align-items: center;
+  height: 80px; /* 로고 크기를 키우기 위해 높이를 살짝 키웠습니다 */
+  padding: 0 10px; /* 로고와 왼쪽 끝 여백을 줄여 로고를 강조합니다 */
+  flex-shrink: 0;
+}
+
+.logo-container {
+  background-color: transparent !important;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0; /* 불필요한 여백 제거 */
+  transition: background-color 0.2s;
+}
+
+/* 로고 비율 유지 (여백을 제거한 새로운 이미지 대응) */
+.logo-img {
+  background-color: transparent !important;
+  border: none;
+  height: 64px; 
+  width: auto;
+  object-fit: contain;
+}
+
+/* 스크롤바 커스텀 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+/* 챗봇 컨테이너 — min-width:0 으로 flex 자식이 말풍선(max-content) 때문에 가로로 팽창해 사이드바를 덮지 않게 함 */
+.chat-container {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0 clamp(12px, 4vw, 120px);
+  display: flex;
+  flex-direction: column;
+}
+
+.welcome-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 5vh;
+}
+
+.greeting-text {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  text-align: center;
+  background: -webkit-linear-gradient(120deg, #a8cdff, #ffffff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.suggestions-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: 700px;
+}
+
+.suggestion-chip {
+  background-color: var(--bg-sidebar);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  flex: 0 1 auto;
+}
+
+.suggestion-chip:hover {
+  background-color: #333333;
+}
+
+/* 채팅 내역 */
+.chat-history {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.chat-message {
+  display: flex;
+  gap: 20px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.chat-message.user {
+  flex-direction: row-reverse;
+}
+
+.chat-message-content {
+  /* max-content 대신 fit-content: 부모 너비를 넘지 않으면서 내용에 맞게 */
+  flex: 0 1 auto;
+  align-self: flex-start;
+  min-width: 0;
+  width: fit-content;
+  max-width: min(100%, 42rem);
+  line-height: 1.6;
+  font-size: 15px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  overflow-x: auto;
+}
+
+/* 로딩 스피너만 있을 때는 가로 스크롤(스크롤바)이 생기지 않도록 */
+.chat-message-content.agent-chat-loading {
+  overflow: visible;
+  overflow-x: visible;
+  overflow-y: visible;
+  width: auto;
+  max-width: none;
+  flex: 0 0 auto;
+}
+
+/* 마크다운 코드블록이 가로로 밀어내지 않도록 */
+.chat-message-content pre {
+  max-width: 100%;
+  overflow-x: auto;
+  box-sizing: border-box;
+}
+
+.chat-message-content table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+@media (max-width: 640px) {
+  .chat-container {
+    padding: 0 10px;
+  }
+  .input-section {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .chat-message {
+    gap: 10px;
+  }
+}
+
+.chat-message.user .chat-message-content {
+  background-color: var(--bg-chat-user);
+  padding: 12px 18px;
+  border-radius: 20px;
+  border-bottom-right-radius: 4px;
+  white-space: pre-wrap;
+}
+
+/* AI 마크다운 리스트 및 텍스트 렌더링 최적화 */
+.chat-message.ai .chat-message-content {
+  padding: 2px 0;
+}
+
+.chat-message.ai .chat-message-content p {
+  margin: 0 0 12px 0;
+}
+
+.chat-message.ai .chat-message-content p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-message.ai .chat-message-content ul,
+.chat-message.ai .chat-message-content ol {
+  margin: 8px 0 16px 0;
+  padding-left: 24px;
+}
+
+.chat-message.ai .chat-message-content li {
+  margin-bottom: 6px;
+  display: list-item;
+}
+
+/* 리스트 안의 p 태그가 줄바꿈을 일으키는 현상 방지 */
+.chat-message.ai .chat-message-content li > p {
+  display: inline;
+  margin: 0;
+}
+
+/* SAP Assistant 스트리밍 중 커서 */
+.agent-stream-cursor {
+  display: inline-block;
+  width: 0.5em;
+  min-height: 1em;
+  margin-left: 3px;
+  vertical-align: text-bottom;
+  background: var(--accent-color, #64b5f6);
+  opacity: 0.85;
+  animation: agent-stream-cursor-blink 0.9s step-end infinite;
+}
+
+@keyframes agent-stream-cursor-blink {
+  50% {
+    opacity: 0.15;
+  }
+}
+
+.message-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.message-icon.user {
+  background-color: #555;
+  color: white;
+}
+
+.message-icon.ai {
+  background-color: transparent;
+}
+
+.message-icon.ai img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+/* 하단 입력창 영역 */
+.input-section {
+  padding: 15px clamp(12px, 4vw, 120px) 30px;
+  background-color: var(--bg-main);
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.chat-input-wrapper {
+  display: flex;
+  width: 100%;
+  max-width: 800px;
+  background-color: var(--bg-sidebar);
+  border: 1px solid var(--border-color);
+  border-radius: 30px;
+  padding: 5px 15px;
+  align-items: center;
+}
+
+.chat-input-wrapper input {
+  flex: 1;
+  padding: 14px 10px;
+  font-size: 16px;
+  background-color: transparent;
+  border: none;
+  color: var(--text-main);
+  outline: none;
+}
+
+.chat-input-wrapper button {
+  background-color: transparent;
+  color: var(--accent-color);
+  border: none;
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 20px;
+  transition: background-color 0.2s;
+}
+
+.chat-input-wrapper button:hover:not(:disabled) {
+  background-color: rgba(168, 205, 255, 0.1);
+}
+
+.chat-input-wrapper button:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* 스피너 */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #444;
+  border-top: 3px solid var(--accent-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* CTS 분석기 UI */
+.analyzer-container {
+  padding: 40px 10%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100%;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+}
+
+.analyzer-search-wrapper {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+.analyzer-search-wrapper input {
+  background-color: var(--bg-sidebar);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 12px 15px;
+  border-radius: 8px;
+  font-size: 15px;
+  outline: none;
+  width: 300px;
+}
+
+.analyzer-search-wrapper button,
+.analyze-btn {
+  background-color: var(--accent-color);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+.analyzer-search-wrapper button:hover:not(:disabled),
+.analyze-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.analyzer-search-wrapper button:disabled,
+.analyze-btn:disabled {
+  background-color: #444;
+  color: #888;
+  cursor: not-allowed;
+}
+
+.result-box {
+  background-color: var(--bg-sidebar);
+  border: 1px solid var(--border-color);
+  padding: 30px;
+  border-radius: 12px;
+  margin-top: 30px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.data-table th, .data-table td {
+  border: 1px solid var(--border-color);
+  padding: 12px;
+}
+
+.data-table th {
+  background-color: #2a2a2b;
+  color: #fff;
+  text-align: center;
+}
+
+.data-table td {
+  background-color: var(--bg-sidebar);
+}
+
+/* =========================================
+   Landing Page (Login) UI
+   ========================================= */
+.landing-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--bg-main);
+}
+
+.login-box {
+  background-color: var(--bg-sidebar);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 50px 40px;
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.login-logo {
+  height: 64px;
+  width: auto;
+  margin-bottom: 20px;
+  object-fit: contain;
+}
+
+.login-box h2 {
+  margin: 0 0 10px 0;
+  font-size: 24px;
+  color: #fff;
+}
+
+.login-box p {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 30px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.login-input {
+  background-color: var(--bg-main);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 14px 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.2s;
+  text-align: center;
+}
+
+.login-input:focus {
+  border-color: var(--accent-color);
+}
+
+.login-button {
+  background-color: var(--accent-color);
+  color: #000;
+  border: none;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.login-button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.login-button:disabled {
+  background-color: #444;
+  color: #888;
+  cursor: not-allowed;
+}
+
+.download-btn {
+  display: flex;
+  align-items: center;
+  background-color: transparent;
+  color: var(--accent-color);
+  border: 1px solid var(--accent-color);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.download-btn:hover {
+  background-color: rgba(168, 205, 255, 0.1);
+  box-shadow: 0 0 10px rgba(168, 205, 255, 0.2);
+}
+
+/* LLM 토큰 대시보드 */
+.usage-dashboard {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 8%;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.usage-dashboard-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.usage-dashboard-title {
+  margin: 0 0 8px 0;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.usage-dashboard-sub {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+  max-width: 640px;
+  line-height: 1.5;
+}
+
+.usage-dashboard-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.usage-dashboard-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.usage-dashboard-btn {
+  background: var(--accent-color);
+  color: #111;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.usage-dashboard-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.usage-dashboard-error {
+  background: rgba(255, 80, 80, 0.12);
+  border: 1px solid rgba(255, 100, 100, 0.35);
+  color: #ffb4b4;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.usage-dashboard-muted {
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.usage-dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.usage-card {
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.usage-card-accent {
+  border-color: rgba(168, 205, 255, 0.35);
+  background: rgba(168, 205, 255, 0.06);
+}
+
+.usage-card-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.usage-card-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.usage-section {
+  margin-bottom: 36px;
+}
+
+.usage-section h2 {
+  font-size: 18px;
+  margin: 0 0 14px 0;
+  color: var(--text-main);
+}
+
+.usage-table-wrap {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  overflow: auto;
+  background: var(--bg-sidebar);
+}
+
+.usage-table-recent {
+  max-height: 420px;
+}
+
+.usage-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.usage-table th,
+.usage-table td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.usage-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.usage-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.usage-td-mono {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}

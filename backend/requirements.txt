@@ -1,0 +1,33 @@
+# Django & API
+Django>=5.0
+djangorestframework>=3.14
+django-cors-headers>=4.3
+python-dotenv>=1.0
+requests>=2.31
+
+# SAP ADT: POST /api/adt-write/ (리팩토링 코드를 SAP에 저장)
+abap-adt-py>=0.1.4
+
+# LLM & LangChain
+langchain>=0.3
+langchain-openai>=0.2
+langchain-core>=0.3
+langchain-community>=0.3
+langgraph>=0.2
+
+# RAG: Vector store & embeddings
+chromadb>=0.4.22
+langchain-chroma>=0.1.2
+
+# MCP (Model Context Protocol)
+mcp[cli]>=1.0
+
+# Testing
+pytest>=8.0
+pytest-django>=4.8
+pytest-cov>=4.1
+pytest-asyncio>=0.24
+httpx>=0.27
+
+# Optional: local embeddings fallback
+# sentence-transformers>=2.2

@@ -1,0 +1,121 @@
+# --- Secrets & 로컬 환경 (예시 파일은 커밋) ---
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+!.env.example
+!**/.env.example
+
+# --- OS ---
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.venv/
+venv/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+*.cover
+.hypothesis/
+.ipynb_checkpoints/
+
+# --- Django ---
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+**/staticfiles/
+**/media/
+
+# --- Node / React / Vite / JavaScript ---
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+.turbo/
+.cache/
+.parcel-cache/
+coverage/
+*.tsbuildinfo
+.npm
+.eslintcache
+.yarn/
+.pnp.*
+vite.config.*.timestamp-*
+
+# --- SQLite (로컬·테스트 DB) ---
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+
+# --- RAG / Chroma / 벡터 스토어 데이터 ---
+**/data/chroma/
+backend/data/
+
+# --- Docker ---
+.docker/
+docker-compose.override.yml
+*.env.docker
+
+# --- Nginx (로컬 테스트 로그) ---
+logs/
+*.access.log
+error.log
+
+# --- VS Code / JetBrains ---
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+!.vscode/tasks.json.example
+!.vscode/launch.json.example
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# --- Cursor IDE (로컬 프로젝트 인덱스·세션; `.cursor/rules` 는 필요 시 커밋) ---
+.cursor/projects/
+.cursor/**/__pycache__/
+
+# --- MCP / Node 브릿지 (mcp-abap-adt 등) ---
+mcp-abap-adt/node_modules/
+mcp-abap-adt/dist/
+mcp-abap-adt/.env
+!mcp-abap-adt/.env.example
+
+# --- LangChain / observability 로컬 ---
+.langsmith/
+.langchain/
+
+# --- 기타 ---
+*.pid
+*.seed
+*.pid.lock
+.npmrc.local

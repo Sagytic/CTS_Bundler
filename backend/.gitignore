@@ -1,0 +1,6 @@
+# ChromaDB / RAG
+data/
+*.sqlite3
+__pycache__/
+.env
+venv/
