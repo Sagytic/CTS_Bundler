@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client';
 
+/** 자동 갱신 켰을 때 간격(ms). 너무 짧으면 백엔드 로그·부하가 잦아짐. */
+const AUTO_REFRESH_MS = 60_000;
+
 function formatNum(n) {
   if (n == null || Number.isNaN(n)) return '0';
   return Number(n).toLocaleString();
@@ -33,7 +36,8 @@ export default function UsageDashboardTab() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  /** 기본 off: 대시보드 탭을 켜 둔 채로 두어도 API가 연속 호출되지 않음 */
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -54,8 +58,24 @@ export default function UsageDashboardTab() {
 
   useEffect(() => {
     if (!autoRefresh) return undefined;
-    const id = setInterval(load, 8000);
-    return () => clearInterval(id);
+
+    const tick = () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return;
+      }
+      load();
+    };
+
+    const id = setInterval(tick, AUTO_REFRESH_MS);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') load();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [autoRefresh, load]);
 
   const summary = data?.summary;
@@ -87,7 +107,7 @@ export default function UsageDashboardTab() {
               checked={autoRefresh}
               onChange={(e) => setAutoRefresh(e.target.checked)}
             />
-            8초마다 갱신
+            60초마다 자동 갱신(탭이 보일 때만)
           </label>
           <button type="button" className="usage-dashboard-btn" onClick={() => load()} disabled={loading}>
             새로고침

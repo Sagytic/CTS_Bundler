@@ -222,6 +222,45 @@ def analyze_graph_recursion_limit() -> int:
     return max(10, env_int("ANALYZE_GRAPH_RECURSION_LIMIT", 22))
 
 
+def deploy_research_rag_k() -> int:
+    """배포 심의 Researcher 노드 Chroma top-k (CRAG 1단계)."""
+    return max(1, min(20, env_int("DEPLOY_RESEARCH_RAG_K", 6)))
+
+
+def deploy_research_rag_enabled() -> bool:
+    """배포 심의 Chroma 벡터 검색(Researcher). false면 검색·CRAG 판정 생략."""
+    return env_bool("DEPLOY_RESEARCH_RAG_ENABLED", True)
+
+
+def deploy_crag_judge_enabled() -> bool:
+    """CRAG 관련성 LLM 판정·쿼리 재작성. 벡터 RAG 켜져 있을 때만 적용."""
+    return env_bool("DEPLOY_CRAG_JUDGE_ENABLED", True)
+
+
+def deploy_self_rag_enabled() -> bool:
+    """배포 심의 아키텍트 직후 Self-RAG(근거 검증·1회 보정). false면 생략."""
+    return env_bool("DEPLOY_SELF_RAG_ENABLED", True)
+
+
+def deploy_graph_rag_enabled() -> bool:
+    """배포 심의 GraphRAG(3단계): TR 시드 기준 DependencySnapshot 간선 수집."""
+    return env_bool("DEPLOY_GRAPH_RAG_ENABLED", True)
+
+
+def deploy_graph_rag_max_edges() -> int:
+    return max(5, min(500, env_int("DEPLOY_GRAPH_RAG_MAX_EDGES", 100)))
+
+
+def deploy_graph_rag_max_hops() -> int:
+    """0=시드 직접 연결 간선만, 1=한 번 노드 확장 후 추가 간선(상한 내)."""
+    return max(0, min(3, env_int("DEPLOY_GRAPH_RAG_MAX_HOPS", 1)))
+
+
+def deploy_graph_rag_max_seeds() -> int:
+    """TR에서 뽑는 시드 오브젝트명 상한(DB __in 부담 완화)."""
+    return max(5, min(300, env_int("DEPLOY_GRAPH_RAG_MAX_SEEDS", 100)))
+
+
 def llm_map_filter_max_tokens() -> int:
     return max(256, env_int("LLM_MAP_FILTER_MAX_TOKENS", 2500))
 

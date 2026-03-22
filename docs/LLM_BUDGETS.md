@@ -18,6 +18,14 @@
 | `MCP_RAG_QUERY_MAX_K` | 10 | MCP `search_rag` / `rag_ask` 의 k 상한 |
 | `CHAT_RAG_CACHE_TTL_SEC` | 300 | `/api/chat/rag/` in-memory 캐시 TTL. **`0`이면 캐시 비활성** |
 | `ANALYZE_GRAPH_RECURSION_LIMIT` | 22 | 배포 심의 LangGraph `recursion_limit` |
+| `DEPLOY_RESEARCH_RAG_K` | 6 | Researcher(1단계) Chroma top-k |
+| `DEPLOY_SELF_RAG_ENABLED` | true | Self-RAG(2단계) 근거 검증·보정. `false`면 생략 |
+| `DEPLOY_GRAPH_RAG_ENABLED` | true | GraphRAG(3단계) TR 시드·DependencySnapshot 간선 |
+| `DEPLOY_GRAPH_RAG_MAX_EDGES` | 100 | 수집 간선 상한 |
+| `DEPLOY_GRAPH_RAG_MAX_HOPS` | 1 | 그래프 확장 홉(0=시드 직접 연결만) |
+| `DEPLOY_GRAPH_RAG_MAX_SEEDS` | 100 | TR에서 쓰는 시드 오브젝트명 상한 |
+| `DEPLOY_RESEARCH_RAG_ENABLED` | true | Chroma Researcher(벡터 검색). `false`면 검색·CRAG 판정 생략 |
+| `DEPLOY_CRAG_JUDGE_ENABLED` | true | CRAG 관련성 LLM·쿼리 재작성(벡터 RAG 켜져 있을 때만) |
 | `LLM_MAP_FILTER_MAX_TOKENS` | 2500 | Dependency Map 노이즈 필터 JSON 응답 |
 | `LLM_MAP_FILTER_TEMPERATURE` | 0.1 | 위 필터 LLM |
 

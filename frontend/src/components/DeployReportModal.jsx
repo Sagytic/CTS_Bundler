@@ -8,6 +8,7 @@ import remarkGfm from 'remark-gfm';
 const STEP_ORDER = ANALYZER_STEP_ORDER;
 const STEP_LABELS = {
   fetch_data: '1차 Rule-based 리스크 스코어링',
+  research: '내부 지식베이스 검색 (Researcher/CRAG)',
   bc: 'BC 인프라·DB Lock 검토',
   fi: 'FI 재무회계 검토',
   co: 'CO 관리회계 검토',
@@ -15,6 +16,7 @@ const STEP_LABELS = {
   sd: 'SD 영업·판매 검토',
   pp: 'PP 생산 검토',
   architect: '수석 아키텍트 최종 보고서',
+  self_rag: 'Self-RAG 근거 검증·보정',
 };
 
 export default function DeployReportModal({

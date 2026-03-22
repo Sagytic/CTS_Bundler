@@ -15,7 +15,7 @@
 | **ADT MCP HTTP 브릿지** | Node.js stdio→Streamable HTTP, 요청별 서버/트랜스포트 | 상 | stdio 전용 서버에 HTTP 진입점 추가, Stateless per-request 패턴 |
 | **구조화 출력** | Pydantic, `with_structured_output` | 중하 | 의도·추천 액션 등 구조화 채팅 응답 |
 | **응답 캐시** | in-memory TTL 캐시 (동일 질문 재사용) | 하 | 300초 TTL |
-| **배포 심의 워크플로** | LangGraph `StateGraph`, 조건부 라우팅, 스트리밍 | 상 | 6개 모듈 전문가 노드 + 수석 아키텍트, NDJSON 스트리밍 |
+| **배포 심의 워크플로** | LangGraph `StateGraph`, RAG 1~4단계(Researcher/CRAG·Self-RAG·GraphRAG·파이프라인) | 상 | 모듈 전문가 + 아키텍트 + NDJSON 스트리밍. 상세는 **§7 로드맵** |
 | **Dependency Map 노이즈 필터** | LLM 기반 JSON 필터 (노드/링크 정제) | 중상 | DDIC/ALV 등 대량 노이즈 제거, 비즈니스 관점 유지 |
 | **AI 코드 리뷰** | ChatPromptTemplate, 요구사항 대비 검증 | 중 | 요구사항↔코드 일치 여부 LLM 판정 |
 
@@ -125,15 +125,115 @@
 ## 7. LangGraph 배포 심의 워크플로
 
 ### 목적
-- 사용자가 선택한 TR에 대해 **Rule 기반 리스크 스코어** → **모듈별 전문가 노드(BC/FI/CO/MM/SD/PP)** → **수석 아키텍트**가 최종 배포 보고서 생성. 프론트엔드는 **진행 상태 스트리밍**으로 UX 제공.
+- 사용자가 선택한 TR에 대해 **Rule 기반 리스크 스코어** → **Researcher(내부 RAG/CRAG 라이트)** → **모듈별 전문가 노드(BC/FI/CO/MM/SD/PP)** → **수석 아키텍트**가 최종 배포 보고서 생성. 프론트엔드는 **진행 상태 스트리밍**으로 UX 제공.
 
 ### 스택
 - **LangGraph** `StateGraph(AgentState)`, `add_node`, `add_conditional_edges`, `set_entry_point`, `compile()`.
-- **AgentState**: user_input, sap_data_raw, rule_score, deploy_risk_grade, 모듈별 analysis 문자열, discussion_history, final_report, review_queue, object_usage_data 등.
+- **AgentState**: user_input, sap_data_raw, rule_score, deploy_risk_grade, 모듈별 analysis 문자열, discussion_history, final_report, review_queue, object_usage_data, **`research_context` / `research_meta`**, **`graph_context` / `graph_meta`**, **`self_rag_meta`** 등.
 - **조건부 라우팅**: `central_router(state)`가 `review_queue`에 따라 다음 노드(모듈명 또는 `architect`) 반환.
 
+### 배포 심의 RAG 로드맵 (1~4단계): 요약·예시
+
+배포 심의(`POST /api/analyze/`) LangGraph 안에서 **검색 품질 → 구조화 근거 → 환각 완화 → 운영 제어** 순으로 단계를 쌓았습니다. 환경 변수는 [`LLM_BUDGETS.md`](./LLM_BUDGETS.md), API 필드는 [`API_CONTRACT.md`](./API_CONTRACT.md)를 참고하세요.
+
+---
+
+#### 1단계 — Researcher + CRAG 라이트 (벡터 검색 보강)
+
+| 항목 | 설명 |
+|------|------|
+| **한 일** | TR·사용자 메시지로 **검색 쿼리**를 만든 뒤 Chroma에서 문서를 가져오고, 필요하면 **소형 LLM**이 “이 청크가 이번 심의에 도움이 되는가?”를 판단합니다. 도움이 아니면 **쿼리를 한 번만 다시 쓰고** 재검색합니다. |
+| **왜** | 임베딩 검색만으로는 질문과 안 맞는 덩어리가 섞일 수 있어, **짧은 CRAG 루프**로 노이즈를 줄입니다. |
+| **코드** | `api/rag/deploy_research_rag.py`, `api/views/analyze.py`의 `node_research` (Chroma 호출 + 선택적 `with_structured_output` 판정). |
+| **상태** | `research_context`(전문가·아키텍트 프롬프트의 `[내부 지식베이스]`), `research_meta`(라운드·판정 등). |
+
+**예시 (개념)**
+
+1. 쿼리 초안: 사용자 입력 `"MM 테이블 변경 리스크 확인"` + TR 오브젝트 `PROG:ZMMR0030, TABL:EKKO` 를 한 줄로 합침.  
+2. Chroma `retrieve` → 상위 k(기본 6)개 문서.  
+3. fast LLM 판정: `relevant: false`, `rewritten_query: "ZMMR0030 EKKO 구매 테이블 종속성"` → **한 번만** 재검색.  
+4. 최종 본문이 `research_context`로 BC/FI/…/아키텍트에게 전달. **TR JSON과 충돌하면 TR 우선**으로 프롬프트에 명시.
+
+**끄기·조절**: `DEPLOY_RESEARCH_RAG_ENABLED`, `DEPLOY_CRAG_JUDGE_ENABLED`, `DEPLOY_RESEARCH_RAG_K` (4단계 `pipeline.research` / `crag_judge`로 요청별 오버라이드 가능).
+
+---
+
+#### 2단계 — Self-RAG (최종 보고서 근거 검증·1회 보정)
+
+| 항목 | 설명 |
+|------|------|
+| **한 일** | 아키텍트가 만든 **최종 마크다운 보고서**를 fast LLM이 **TR·내부 RAG·(3단계) 그래프**와 대조해 `is_grounded` / `issues`로 심사합니다. **근거 부족**이면 같은 근거만 보고 **전체 보고서를 1번** 고쳐 씁니다. |
+| **왜** | 회의록 생성 단계에서 **없는 사실·과장**이 섞이는 것을 줄이기 위함입니다. |
+| **코드** | `api/rag/deploy_self_rag.py`, `node_self_rag` (아키텍트 다음 → **`END` 직전 마지막 노드**). |
+| **상태** | `self_rag_meta` (판정·보정 여부 등). |
+
+**예시 (개념)**
+
+- 심사 결과: `is_grounded: false`, `issues: ["TR에 없는 프로그램 ZFI999를 이번 변경으로 단정"]`  
+- 보정 프롬프트: 위 지적 + TR JSON 일부 + `research_context` + `graph_context`를 넣고, **구조는 유지한 채 문제 문장만 삭제·완화**.
+
+**끄기**: `DEPLOY_SELF_RAG_ENABLED` 또는 `pipeline.self_rag: false`.
+
+---
+
+#### 3단계 — GraphRAG (DB 종속성 스냅샷을 텍스트 그래프로)
+
+| 항목 | 설명 |
+|------|------|
+| **한 일** | TR의 **OBJ_NAME**들을 시드로 Django **`DependencySnapshot`**에서 `source_obj → target_obj` 간선을 읽어, **마크다운 리스트**로 만듭니다. 이걸 전문가·아키텍트·Self-RAG에 넣고, **1단계 Chroma 쿼리 끝에 짧은 요약**도 붙여 검색을 보강합니다. |
+| **왜** | 벡터 RAG는 문장 단위라 **호출 관계**가 흐릿할 때가 있어, **구조화 엣지**를 병행합니다. |
+| **코드** | `api/rag/deploy_graph_rag.py`, `node_research` 안에서 그래프 블록 생성 후 `graph_context` / `graph_meta` 설정. |
+| **주의** | 그래프에 나오는 이웃 오브젝트가 **이번 TR에 없을 수 있음** → 프롬프트에서 “TR 중심, 그래프는 참고”로 제한. |
+
+**예시 (개념)**
+
+```text
+[GraphRAG: DependencySnapshot 부분 그래프] 시드 3개, 간선 12건 ...
+- `ZMMR0030` → `EKKO` (group=4)
+- `ZMMR0030` → `MARA` (group=4)
+```
+
+**끄기·조절**: `DEPLOY_GRAPH_RAG_ENABLED`, `DEPLOY_GRAPH_RAG_MAX_EDGES`, `MAX_HOPS`, `MAX_SEEDS` 또는 `pipeline.graph: false`.
+
+---
+
+#### 4단계 — 파이프라인 통합 (플래그·타이밍·요약)
+
+| 항목 | 설명 |
+|------|------|
+| **한 일** | **`.env` 기본값**과 **`POST` body의 `pipeline`**을 합쳐 1~3단계 구성요소를 켜고 끕니다. 실행 중 **노드별 소요 시간(ms)**을 모아 **`pipeline_summary`**로 정리하고, DB 저장 시 `DeployReportRecord.extra`에 넣습니다. |
+| **왜** | 비용·지연 실험(예: Self-RAG만 끄고 비교), 장애 분석, 운영 문서화를 한 객체로 맞추기 위함입니다. |
+| **코드** | `api/rag/deploy_pipeline.py` (`resolve_deploy_pipeline_flags`, `build_deploy_pipeline_summary`), `analyze.py`의 `pipeline_flags` / `pipeline_timings_ms`. |
+
+**요청 예시 (JSON)**
+
+```json
+{
+  "message": "배포 검토 부탁",
+  "user_id": "DEMO",
+  "selected_trs": ["DEVK900001"],
+  "pipeline": {
+    "research": true,
+    "graph": true,
+    "self_rag": false,
+    "crag_judge": true
+  },
+  "include_pipeline_summary": true
+}
+```
+
+- `research: false`이면 Chroma 검색·CRAG 판정 생략 → **`crag_judge`는 자동 false**.  
+- `include_pipeline_summary: true`이면 스트림 **마지막 NDJSON**에 `pipeline_summary` 필드가 추가됩니다.  
+- 저장된 리포트는 `extra.pipeline_flags`, `extra.pipeline_timings_ms`, `extra.pipeline_summary` 등으로 동일 정보를 열람할 수 있습니다.
+
+---
+
 ### 구현
-- **`api/views/analyze.py`**: `node_fetch_and_score`(SAP TR 조회, Rule 스코어, 오브젝트 사용처 fetch) → `central_router` → `node_bc`/`node_fi`/…/`node_architect`. 각 모듈 노드는 전용 ChatPromptTemplate + LLM으로 분석문 작성 후 `discussion_history`에 누적. 아키텍트 노드는 전체 히스토리 + 오브젝트 사용처를 반영한 최종 보고서 생성.
+- **`api/views/analyze.py`**: `node_fetch_and_score`(SAP TR 조회, Rule 스코어, 오브젝트 사용처 fetch) → **`node_research`** → `central_router` → `node_bc`/`node_fi`/…/`node_architect` → **`node_self_rag`**. Researcher는 **`api/rag/deploy_research_rag.py`**: Chroma `retrieve` 후(선택) **gpt-4o-mini 등 fast LLM**으로 관련성 판단·쿼리 1회 재작성 후 재검색(CRAG 라이트). 검색 본문은 **`research_context`**로 모듈 전문가·아키텍트 프롬프트의 `[내부 지식베이스]`에 주입되며, **TR 데이터와 충돌 시 TR 우선**으로 명시. Top-k는 **`DEPLOY_RESEARCH_RAG_K`**(기본 6, `api/config.py`).
+- **Self-RAG(2단계)**: **`api/rag/deploy_self_rag.py`** — 아키텍트 **`final_report`**에 대해 fast LLM **구조화 심사**(`is_grounded`, `issues`, `severity`). `is_grounded=false`이면 **동일 근거(TR·Researcher·GraphRAG)**로 **1회 보정** 재생성. 메타는 **`self_rag_meta`**, 배포 리포트 `extra`에 포함. 끄려면 **`DEPLOY_SELF_RAG_ENABLED=false`** (`api/config.py`).
+- **GraphRAG(3단계)**: **`api/rag/deploy_graph_rag.py`** — TR **`objects`의 OBJ_NAME**을 시드로 **`DependencySnapshot`**에서 `source_obj`/`target_obj` 간선을 수집(홉·간선 상한). **`graph_context`**로 모듈 전문가·아키텍트·Self-RAG에 주입하고, Researcher의 **Chroma 쿼리**에 짧은 그래프 요약을 **접미사**로 붙여 검색 보강. 메타 **`graph_meta`**는 `DeployReportRecord.extra`에 포함. **`DEPLOY_GRAPH_RAG_*`** 환경 변수로 조절 (`api/config.py`).
+- **파이프라인 통합(4단계)**: **`api/rag/deploy_pipeline.py`** — **`resolve_deploy_pipeline_flags`**: `.env` 기본 + 요청 **`pipeline`** JSON으로 단계별 on/off. **`build_deploy_pipeline_summary`**: 플래그·`pipeline_timings_ms`(research 노드: `graph_rag_ms`, `research_rag_ms` 등 / Self-RAG: `self_rag_ms`)·RAG·그래프·Self-RAG 요약을 **`pipeline_summary`**로 정리. LangGraph **`pipeline_flags`**·**`pipeline_timings_ms`** 상태에 저장 후 `DeployReportRecord.extra`에 포함. 스트림 마지막에 요약을 붙이려면 **`include_pipeline_summary: true`**. 벡터 RAG를 끄면 **`crag_judge`는 자동 off**. 환경: **`DEPLOY_RESEARCH_RAG_ENABLED`**, **`DEPLOY_CRAG_JUDGE_ENABLED`** (`api/config.py`).
+- 각 모듈 노드는 전용 ChatPromptTemplate + LLM으로 분석문 작성 후 `discussion_history`에 누적. 아키텍트 노드는 전체 히스토리 + 오브젝트 사용처 + 내부 RAG 맥락을 반영한 최종 보고서 생성.
 - **스트리밍**: `StreamingHttpResponse` + 백그라운드 스레드에서 `app.invoke()`. 주기적으로 `progress["step"]`/`progress["label"]`을 NDJSON으로 전송. (`stream_generator`)
 
 ### 기술적 난이도

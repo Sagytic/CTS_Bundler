@@ -1,10 +1,21 @@
 import { buildApiUrl } from './client'
 
-export const ANALYZER_STEP_ORDER = ['fetch_data', 'bc', 'fi', 'co', 'mm', 'sd', 'pp', 'architect']
+export const ANALYZER_STEP_ORDER = [
+  'fetch_data',
+  'research',
+  'bc',
+  'fi',
+  'co',
+  'mm',
+  'sd',
+  'pp',
+  'architect',
+  'self_rag',
+]
 
 /**
  * POST /api/analyze/ NDJSON stream; updates via callbacks.
- * @param {{ message: string, user_id: string, selected_trs: string[] }} body
+ * @param {{ message: string, user_id: string, selected_trs: string[], pipeline?: object, include_pipeline_summary?: boolean }} body
  * @param {{
  *   setAnalyzeProgress: (p: { step: string, label: string }) => void,
  *   setAnalyzeCompletedSteps: (fn: (prev: string[]) => string[]) => void,
@@ -38,7 +49,12 @@ export async function streamDeployAnalysis(body, callbacks) {
       try {
         const data = JSON.parse(line)
         if (data.done === true && data.reply != null) {
-          setAnalyzeCompletedSteps((prev) => [...prev, 'architect'])
+          setAnalyzeCompletedSteps((prev) => {
+            const s = new Set(prev)
+            s.add('architect')
+            s.add('self_rag')
+            return [...s]
+          })
           lastReply = data.reply
           setAnalyzerResponse(data.reply)
           break
@@ -65,7 +81,12 @@ export async function streamDeployAnalysis(body, callbacks) {
     try {
       const data = JSON.parse(buffer)
       if (data.done === true && data.reply != null) {
-        setAnalyzeCompletedSteps((prev) => [...prev, 'architect'])
+        setAnalyzeCompletedSteps((prev) => {
+          const s = new Set(prev)
+          s.add('architect')
+          s.add('self_rag')
+          return [...s]
+        })
         lastReply = data.reply
         setAnalyzerResponse(data.reply)
       }

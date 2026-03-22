@@ -22,8 +22,16 @@ from api.config import (
     azure_openai_endpoint,
     azure_openai_fast_deployment,
     azure_openai_key,
+    deploy_graph_rag_max_edges,
+    deploy_graph_rag_max_hops,
+    deploy_graph_rag_max_seeds,
+    deploy_research_rag_k,
 )
 from api.persist_ai_reports import save_deploy_report_record, should_persist
+from api.rag.deploy_pipeline import (
+    build_deploy_pipeline_summary,
+    resolve_deploy_pipeline_flags,
+)
 from api.sap_client import fetch_object_usage_via_http, fetch_recent_transports_via_http
 
 # 배포 리스크 등급별 권장 액션 (고정)
@@ -65,6 +73,17 @@ class AgentState(TypedDict):
     review_queue: list
     called_counts: dict
     object_usage_data: list
+    # Researcher (CRAG) — fetch_data 다음 노드에서 채움
+    research_context: str
+    research_meta: dict
+    # Self-RAG (2단계) — architect 다음 노드
+    self_rag_meta: dict
+    # GraphRAG (3단계) — research 노드에서 채움
+    graph_context: str
+    graph_meta: dict
+    # 4단계: 파이프라인 플래그·타이밍
+    pipeline_flags: dict
+    pipeline_timings_ms: dict
 
 
 class AnalyzeGuardianView(APIView):
@@ -76,6 +95,8 @@ class AnalyzeGuardianView(APIView):
         selected_trs = request.data.get("selected_trs", [])
         req_id = getattr(request, "request_id", "-")
         persist_report = should_persist(request.data)
+        pipeline_flags = resolve_deploy_pipeline_flags(request.data)
+        include_pipeline_summary = bool(request.data.get("include_pipeline_summary"))
 
         progress: dict[str, str] = {"step": "", "label": ""}
         result_holder: list[dict] = []
@@ -238,6 +259,92 @@ class AnalyzeGuardianView(APIView):
                 "object_usage_data": object_usage_list if sap_result["status"] == "success" and selected_trs else [],
             }
 
+        def node_research(state: AgentState):
+            """Chroma RAG + CRAG 라이트 + GraphRAG(구조화 종속성)."""
+            progress["step"] = "research"
+            progress["label"] = "내부 지식베이스·종속성 그래프 검색 중..."
+            print("📚 [Researcher] GraphRAG + CRAG 검색 시작...")
+            from api.rag.deploy_graph_rag import (
+                build_graph_context_for_deploy,
+                graph_query_suffix,
+            )
+            from api.rag.deploy_research_rag import (
+                build_initial_query,
+                crag_retrieve_for_deploy_review,
+            )
+
+            pf = state.get("pipeline_flags") or {}
+            use_graph = bool(pf.get("graph_rag", True))
+            use_research = bool(pf.get("research_rag", True))
+            use_crag_judge = bool(pf.get("crag_judge", True))
+
+            timings: dict[str, float] = {**(state.get("pipeline_timings_ms") or {})}
+            t_node0 = time.perf_counter()
+
+            t_g0 = time.perf_counter()
+            if use_graph:
+                graph_block, gmeta = build_graph_context_for_deploy(
+                    state.get("sap_data_raw") or [],
+                    max_edges=deploy_graph_rag_max_edges(),
+                    max_hops=deploy_graph_rag_max_hops(),
+                    max_seeds=deploy_graph_rag_max_seeds(),
+                )
+            else:
+                graph_block = "(GraphRAG 생략: pipeline.graph=false 또는 환경 설정)"
+                gmeta = {"skipped": True, "edge_count": 0, "seed_count": 0, "reason": "pipeline_or_env"}
+            timings["graph_rag_ms"] = round((time.perf_counter() - t_g0) * 1000, 2)
+
+            t_r0 = time.perf_counter()
+            if use_research:
+                k = deploy_research_rag_k()
+                q = build_initial_query(
+                    state.get("user_input") or "",
+                    state.get("sap_data_raw") or [],
+                )
+                q = (q or "").strip() + graph_query_suffix(graph_block)
+                judge_llm = None
+                if use_crag_judge and azure_openai_key() and azure_openai_endpoint():
+                    judge_llm = llm_fast
+                block, rmeta = crag_retrieve_for_deploy_review(
+                    query=q,
+                    k=k,
+                    llm_fast=judge_llm,
+                    user_input=state.get("user_input") or "",
+                    sap_data_raw=state.get("sap_data_raw") or [],
+                )
+            else:
+                block = "(벡터 RAG 생략: pipeline.research=false 또는 환경 설정)"
+                rmeta = {
+                    "skipped": "research_rag_disabled",
+                    "rounds": [],
+                    "final_query": "",
+                }
+            timings["research_rag_ms"] = round((time.perf_counter() - t_r0) * 1000, 2)
+            timings["research_node_total_ms"] = round((time.perf_counter() - t_node0) * 1000, 2)
+            summary_line = (
+                f"쿼리 `{rmeta.get('final_query', q)[:120]}` → "
+                f"검색 라운드 {len(rmeta.get('rounds', []))}회"
+            )
+            if rmeta.get("judgment"):
+                summary_line += f" | 판정: {rmeta['judgment']}"
+            graph_line = (
+                f"**GraphRAG**: 시드 {gmeta.get('seed_count', 0)} | "
+                f"간선 {gmeta.get('edge_count', 0)} | hop {gmeta.get('hop_rounds', 0)}"
+            )
+            new_hist = (
+                state["discussion_history"]
+                + f"{graph_line}\n**Researcher (CRAG)**:\n{summary_line}\n\n"
+            )
+            print(f"   ↳ ✅ Researcher 완료 ({graph_line}; {summary_line})")
+            return {
+                "research_context": block or "(내부 지식베이스 근거 없음)",
+                "research_meta": rmeta,
+                "graph_context": graph_block,
+                "graph_meta": gmeta,
+                "discussion_history": new_hist,
+                "pipeline_timings_ms": timings,
+            }
+
         def create_expert_node(module_name, role_desc, state_key):
             def expert_node(state: AgentState):
                 progress["step"] = module_name.lower()
@@ -261,13 +368,24 @@ class AnalyzeGuardianView(APIView):
                     "2. **비즈니스 영향**: 위에서 나열한 **TR 내 오브젝트**가 관여하는 업무·트랜잭션(T-Code)·데이터 흐름만 구체적으로 서술하세요.\n"
                     "3. **필요 테스트**: 위 오브젝트·로직에 맞는 검증만 나열하세요. (TR에 없는 오브젝트 기준 테스트는 쓰지 마세요.)\n"
                     "4. TR에 담당 모듈 연관 오브젝트가 없을 때만 '특이사항 없음' 한 줄. 그 외에는 위 1~3을 **압축 없이** 4~5문장으로 작성. '@모듈명'은 치명적 연계 시 1회만.\n\n"
+                    "[내부 지식베이스 (Researcher/CRAG — 종속성·티켓 RAG 인덱스)]\n"
+                    "{research}\n\n"
+                    "위는 벡터 검색으로 가져온 **보조 근거**입니다. **[TR 데이터]와 충돌하면 TR 데이터를 우선**하고, 내부 지식은 보완·참고만 하세요.\n\n"
+                    "[구조화 종속성 그래프 (GraphRAG — DB DependencySnapshot)]\n"
+                    "{graph}\n\n"
+                    "위는 TR 오브젝트를 시드로 한 **호출·참조 간선**입니다. TR JSON에 없는 오브젝트가 그래프에 나오면 **그래프는 참고용**이며, "
+                    "발언에서는 **TR에 있는 오브젝트**를 중심으로 서술하세요.\n\n"
                     "[이전 토의]\n{history}\n\n[TR 데이터]\n{data}"
                 )
                 prompt = ChatPromptTemplate.from_messages([("system", prompt_text)])
                 chain = prompt | llm_fast
                 res = chain.invoke({
+                    "research": (state.get("research_context") or "").strip()
+                    or "(내부 지식베이스 검색 결과 없음 또는 RAG 미적재)",
+                    "graph": (state.get("graph_context") or "").strip()
+                    or "(GraphRAG 간선 없음 또는 비활성)",
                     "history": state["discussion_history"],
-                    "data": json.dumps(state["sap_data_raw"], ensure_ascii=False)
+                    "data": json.dumps(state["sap_data_raw"], ensure_ascii=False),
                 })
                 content = res.content
                 new_history = state["discussion_history"] + f"**{module_name} 에이전트**: {content}\n\n"
@@ -343,6 +461,10 @@ class AnalyzeGuardianView(APIView):
                         "- **최종 결정**: 승인 / 조건부 승인 / 반려\n"
                         "- **조치사항**: (권장 액션 참고하여 2~3문장)\n\n"
                         "[시스템 판정] 등급={grade}, 이유={reason}\n\n"
+                        "[내부 지식베이스 (Researcher/CRAG)]\n"
+                        "{research}\n\n"
+                        "[구조화 종속성 그래프 (GraphRAG)]\n"
+                        "{graph}\n\n"
                         "[전체 회의록]\n"
                         "{history}"),
             ])
@@ -353,7 +475,11 @@ class AnalyzeGuardianView(APIView):
                 "reason": reason,
                 "actions_text": actions_text,
                 "usage_json": usage_json,
-                "history": state["discussion_history"]
+                "research": (state.get("research_context") or "").strip()
+                or "(없음)",
+                "graph": (state.get("graph_context") or "").strip()
+                or "(없음)",
+                "history": state["discussion_history"],
             })
             final_text = res.content.strip()
             if final_text.startswith("```markdown"):
@@ -363,6 +489,55 @@ class AnalyzeGuardianView(APIView):
             if final_text.endswith("```"):
                 final_text = final_text[:-3].strip()
             return {"final_report": final_text}
+
+        def node_self_rag(state: AgentState):
+            """Self-RAG: 최종 보고서를 TR·내부 RAG 근거로 검증하고, 필요 시 1회 보정."""
+            progress["step"] = "self_rag"
+            progress["label"] = "Self-RAG 근거 검증·보정 중..."
+            print("🔍 [Self-RAG] 최종 보고서 근거 검증...")
+            from api.rag.deploy_self_rag import review_deploy_final_report
+
+            report = (state.get("final_report") or "").strip()
+
+            pf = state.get("pipeline_flags") or {}
+            timings = {**(state.get("pipeline_timings_ms") or {})}
+
+            if not bool(pf.get("self_rag", True)):
+                meta = {"skipped": True, "summary": "pipeline.self_rag=false"}
+                print(f"   ↳ ⏭️ Self-RAG 생략 ({meta['summary']})")
+                return {"self_rag_meta": meta, "pipeline_timings_ms": timings}
+
+            if len(report) < 80:
+                meta = {"skipped": True, "summary": "보고서가 너무 짧음"}
+                print(f"   ↳ ⏭️ Self-RAG 생략 ({meta['summary']})")
+                return {"self_rag_meta": meta, "pipeline_timings_ms": timings}
+
+            t_sr0 = time.perf_counter()
+            new_report, meta = review_deploy_final_report(
+                final_report=report,
+                research_context=state.get("research_context") or "",
+                research_meta=state.get("research_meta") or {},
+                graph_context=state.get("graph_context") or "",
+                graph_meta=state.get("graph_meta") or {},
+                sap_data_raw=state.get("sap_data_raw") or [],
+                user_input=state.get("user_input") or "",
+                llm_fast=llm_fast,
+            )
+            summ = meta.get("summary", "")
+            new_hist = state["discussion_history"] + f"**Self-RAG**:\n{summ}\n\n"
+            if meta.get("revised"):
+                print("   ↳ ✅ Self-RAG 보정 반영")
+            elif meta.get("skipped"):
+                print(f"   ↳ ⏭️ Self-RAG: {summ}")
+            else:
+                print("   ↳ ✅ Self-RAG: 수정 불필요(grounded)")
+            timings["self_rag_ms"] = round((time.perf_counter() - t_sr0) * 1000, 2)
+            return {
+                "final_report": new_report,
+                "self_rag_meta": meta,
+                "discussion_history": new_hist,
+                "pipeline_timings_ms": timings,
+            }
 
         def central_router(state: AgentState) -> str:
             queue = state.get("review_queue", [])
@@ -374,6 +549,7 @@ class AnalyzeGuardianView(APIView):
 
         workflow = StateGraph(AgentState)
         workflow.add_node("fetch_data", node_fetch_and_score)
+        workflow.add_node("research", node_research)
         workflow.add_node("bc", node_bc)
         workflow.add_node("fi", node_fi)
         workflow.add_node("co", node_co)
@@ -381,8 +557,10 @@ class AnalyzeGuardianView(APIView):
         workflow.add_node("sd", node_sd)
         workflow.add_node("pp", node_pp)
         workflow.add_node("architect", node_report_generator)
+        workflow.add_node("self_rag", node_self_rag)
         workflow.set_entry_point("fetch_data")
-        workflow.add_conditional_edges("fetch_data", central_router)
+        workflow.add_edge("fetch_data", "research")
+        workflow.add_conditional_edges("research", central_router)
         modules = ["bc", "fi", "co", "mm", "sd", "pp"]
         for mod in modules:
             workflow.add_conditional_edges(
@@ -390,7 +568,8 @@ class AnalyzeGuardianView(APIView):
                 central_router,
                 {"bc": "bc", "fi": "fi", "co": "co", "mm": "mm", "sd": "sd", "pp": "pp", "architect": "architect"}
             )
-        workflow.add_edge("architect", END)
+        workflow.add_edge("architect", "self_rag")
+        workflow.add_edge("self_rag", END)
         app = workflow.compile()
 
         initial_state = {
@@ -399,7 +578,12 @@ class AnalyzeGuardianView(APIView):
             "bc_analysis": "", "fi_analysis": "", "co_analysis": "",
             "mm_analysis": "", "sd_analysis": "", "pp_analysis": "",
             "discussion_history": "", "final_report": "",
-            "review_queue": [], "called_counts": {}, "object_usage_data": []
+            "review_queue": [], "called_counts": {}, "object_usage_data": [],
+            "research_context": "", "research_meta": {},
+            "graph_context": "", "graph_meta": {},
+            "self_rag_meta": {},
+            "pipeline_flags": pipeline_flags,
+            "pipeline_timings_ms": {},
         }
         config = {"recursion_limit": analyze_graph_recursion_limit()}
 
@@ -463,6 +647,8 @@ class AnalyzeGuardianView(APIView):
                 if not isinstance(raw_state, dict):
                     raw_state = {}
                 reply = raw_state.get("final_report", reply)
+            pipeline_summary = build_deploy_pipeline_summary(raw_state)
+            raw_state_out = {**raw_state, "pipeline_summary": pipeline_summary}
             if persist_report:
                 try:
                     save_deploy_report_record(
@@ -471,11 +657,14 @@ class AnalyzeGuardianView(APIView):
                         user_input=str(user_input or ""),
                         selected_trs=selected_trs,
                         final_report=reply,
-                        graph_state=raw_state,
+                        graph_state=raw_state_out,
                     )
                 except Exception as e:
                     print(f"🔥 [Persist] deploy report DB 저장 실패: {e}")
-            yield json.dumps({"done": True, "reply": reply}, ensure_ascii=False) + "\n"
+            done_obj: dict = {"done": True, "reply": reply}
+            if include_pipeline_summary:
+                done_obj["pipeline_summary"] = pipeline_summary
+            yield json.dumps(done_obj, ensure_ascii=False) + "\n"
 
         response = StreamingHttpResponse(
             stream_generator(),

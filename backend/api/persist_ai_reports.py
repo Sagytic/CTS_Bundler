@@ -62,6 +62,12 @@ def _deploy_extra_from_state(state: dict[str, Any]) -> dict[str, Any]:
         "deploy_risk_reason",
         "deploy_risk_actions",
         "rule_reasons",
+        "research_meta",
+        "self_rag_meta",
+        "graph_meta",
+        "pipeline_flags",
+        "pipeline_timings_ms",
+        "pipeline_summary",
     ):
         if k in state:
             out[k] = state[k]
