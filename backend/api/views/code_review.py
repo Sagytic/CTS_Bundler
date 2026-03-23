@@ -162,7 +162,8 @@ class AICodeReviewView(APIView):
                                     yield piece.encode("utf-8")
                         except Exception as e:
                             stream_err = e
-                            yield f"\n\n[오류] AI 분석 중 문제가 발생했습니다: {e}".encode(
+                            _code_review_log.exception("code_review stream chunk error")
+                            yield "\n\n[오류] AI 분석 중 문제가 발생했습니다. 상세 내용은 서버 로그를 확인하세요.".encode(
                                 "utf-8"
                             )
                         finally:
@@ -175,7 +176,8 @@ class AICodeReviewView(APIView):
                                 deployment=azure_openai_deployment(),
                             )
                 except Exception as e:
-                    yield f"\n\n[오류] AI 분석 중 문제가 발생했습니다: {e}".encode("utf-8")
+                    _code_review_log.exception("code_review stream outer error")
+                    yield "\n\n[오류] AI 분석 중 문제가 발생했습니다. 상세 내용은 서버 로그를 확인하세요.".encode("utf-8")
 
             resp = StreamingHttpResponse(
                 byte_stream(),
@@ -203,7 +205,8 @@ class AICodeReviewView(APIView):
             if isinstance(ai_result, list):
                 ai_result = _delta_text(res)
         except Exception as e:
-            ai_result = f"AI 분석 중 오류가 발생했습니다: {str(e)}"
+            _code_review_log.exception("code_review error")
+            ai_result = "AI 분석 중 오류가 발생했습니다. 상세 내용은 서버 로그를 확인하세요."
 
         if persist:
             try:

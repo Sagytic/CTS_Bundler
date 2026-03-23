@@ -60,9 +60,10 @@ class RAGIngestView(APIView):
                 status=status.HTTP_200_OK,
             )
         except Exception as e:
-            import traceback
+            import logging
+            logging.getLogger("cts.ai").exception("Ingest error")
             return Response(
-                {"error": str(e), "detail": traceback.format_exc()},
+                {"error": "데이터 처리 중 오류가 발생했습니다. 상세 내용은 서버 로그를 확인하세요."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -109,7 +110,9 @@ class RAGQueryView(APIView):
                 status=status.HTTP_200_OK,
             )
         except Exception as e:
+            import logging
+            logging.getLogger("cts.ai").exception("Query error")
             return Response(
-                {"error": str(e)},
+                {"error": "응답 처리 중 오류가 발생했습니다. 상세 내용은 서버 로그를 확인하세요."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

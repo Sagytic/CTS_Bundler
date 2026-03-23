@@ -99,8 +99,8 @@ def build_graph_context_for_deploy(
                 break
     except Exception as e:
         _log.warning("deploy_graph_rag DB query failed: %s", e)
-        meta["error"] = str(e)
-        return f"(GraphRAG 조회 오류: {e})", meta
+        meta["error"] = "DB 조회 실패"
+        return "(GraphRAG 조회 오류)", meta
 
     meta["edge_count"] = len(collected)
     if not collected:

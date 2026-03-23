@@ -194,9 +194,7 @@ async def _call_remote_tool(url: str, tool_name: str, arguments: dict[str, Any] 
                 return await _call_remote_tool_session(tool_name, arguments, session)
     except BaseException as e:
         _log_mcp_failure(f"call_tool sse tool={tool_name}", url, e)
-        leaves = _exception_leaves(e)
-        hint = leaves[0] if leaves else str(e)
-        return f"외부 MCP 호출 오류: {hint}"
+        return "외부 MCP 호출 오류: 상세 내용은 서버 로그를 확인하세요."
 
 
 def _run_async(coro):
