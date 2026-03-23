@@ -228,9 +228,17 @@ class SnapshotUpdateView(APIView):
                 status=status.HTTP_200_OK,
             )
         except requests.exceptions.RequestException as e:
-            return Response({"error": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+            _log.exception("SAP snapshot fetch failed: %s", e)
+            return Response(
+                {"error": "SAP 데이터 조회 중 오류가 발생했습니다."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
         except (KeyError, TypeError, ValueError) as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            _log.exception("Snapshot data processing error: %s", e)
+            return Response(
+                {"error": "스냅샷 데이터 처리 중 오류가 발생했습니다."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class DependencyEdgesView(APIView):

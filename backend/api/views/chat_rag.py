@@ -4,6 +4,7 @@ Chat with optional RAG: retrieved context + optional structured output + respons
 from __future__ import annotations
 
 import hashlib
+import logging
 import time
 from typing import Optional
 
@@ -27,6 +28,7 @@ from api.config import (
 from api.observability import track_llm_request
 from api.prompts.chat_rag import RAG_CHAT_SYSTEM_PROMPT, rag_chat_system_with_context_hint
 
+_logger = logging.getLogger("cts.ai")
 _CHAT_CACHE: dict[str, tuple[str, float]] = {}
 
 
@@ -146,7 +148,8 @@ class SAPChatRAGView(APIView):
                 result = chain.invoke({"input": user_input, "context": context})
             reply = result.content if hasattr(result, "content") else str(result)
         except Exception as e:
-            reply = f"챗봇 응답 중 오류가 발생했습니다: {str(e)}"
+            _logger.exception("Chat RAG error: %s", e)
+            reply = "챗봇 응답 중 오류가 발생했습니다. 상세 내용은 서버 로그를 확인하세요."
 
         if use_cache and cache_key and ttl > 0:
             _CHAT_CACHE[cache_key] = (reply, time.time())

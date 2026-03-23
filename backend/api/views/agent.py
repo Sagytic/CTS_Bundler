@@ -331,12 +331,13 @@ class AgentChatView(APIView):
             )
             graph = create_react_agent(llm, tools, prompt=system)
         except Exception as e:
+            _logger.exception("Agent initialization error: %s", e)
             return Response(
                 {
-                    "reply": f"에이전트 초기화 오류: {str(e)}",
+                    "reply": "에이전트 초기화 중 오류가 발생했습니다. 상세 내용은 서버 로그를 확인하세요.",
                     "steps": [],
                     "react_used_tools": 0,
-                    "error": str(e),
+                    "error": "Initialization error",
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -455,12 +456,13 @@ class AgentChatView(APIView):
                 status=status.HTTP_200_OK,
             )
         except Exception as e:
+            _logger.exception("Agent execution error: %s", e)
             return Response(
                 {
-                    "reply": f"에이전트 실행 오류: {str(e)}",
+                    "reply": "에이전트 실행 중 오류가 발생했습니다. 상세 내용은 서버 로그를 확인하세요.",
                     "steps": [],
                     "react_used_tools": 0,
-                    "error": str(e),
+                    "error": "Execution error",
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

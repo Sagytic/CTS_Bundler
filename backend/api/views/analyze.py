@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import json
 import re
 import threading
@@ -33,6 +34,8 @@ from api.rag.deploy_pipeline import (
     resolve_deploy_pipeline_flags,
 )
 from api.sap_client import fetch_object_usage_via_http, fetch_recent_transports_via_http
+
+_logger = logging.getLogger("cts.ai")
 
 # 배포 리스크 등급별 권장 액션 (고정)
 DEPLOY_ACTIONS = {
@@ -604,10 +607,11 @@ class AnalyzeGuardianView(APIView):
                             )
                             result_holder.append(result)
                         except Exception as e:
+                            _logger.exception("Analyze guardian invoke error: %s", e)
                             invoke_err = e
                             result_holder.append(
                                 {
-                                    "final_report": f"LangGraph 실행 중 중단되었습니다: {str(e)}"
+                                    "final_report": "분석 실행 중 오류가 발생했습니다. 상세 내용은 서버 로그를 확인하세요."
                                 }
                             )
                             print(f"🔥 [Error] {e}")
@@ -623,8 +627,9 @@ class AnalyzeGuardianView(APIView):
                     result = app.invoke(initial_state, config)
                     result_holder.append(result)
             except Exception as e:
+                _logger.exception("Analyze guardian unexpected error: %s", e)
                 result_holder.append(
-                    {"final_report": f"LangGraph 실행 중 중단되었습니다: {str(e)}"}
+                    {"final_report": "분석 중 예기치 않은 오류가 발생했습니다. 상세 내용은 서버 로그를 확인하세요."}
                 )
                 print(f"🔥 [Error] {e}")
 
