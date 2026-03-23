@@ -12,10 +12,14 @@ class TestAgentChatView:
         r = api_client.post("/api/agent/", data={}, format="json")
         assert r.status_code == status.HTTP_400_BAD_REQUEST
 
+    @patch("api.views.agent.azure_openai_key")
+    @patch("api.views.agent.azure_openai_endpoint")
     @patch("api.views.agent._make_tools")
     @patch("api.views.agent.AzureChatOpenAI")
     @patch("langgraph.prebuilt.create_react_agent")
-    def test_agent_returns_reply(self, mock_create_agent, mock_llm_class, mock_tools, api_client):
+    def test_agent_returns_reply(self, mock_create_agent, mock_llm_class, mock_tools, mock_endpoint, mock_key, api_client):
+        mock_key.return_value = "dummy_key"
+        mock_endpoint.return_value = "dummy_endpoint"
         mock_tools.return_value = ([], {"docs_tools": 0, "adt_tools": 0})
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
