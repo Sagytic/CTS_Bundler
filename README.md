@@ -48,6 +48,8 @@ npm run dev
 
 | 문서 | 내용 |
 |------|------|
+| [`docs/QUICKSTART_E2E.md`](docs/QUICKSTART_E2E.md) | **E2E Quickstart**(10분, curl, 외부 의존 없을 때 동작) |
+| [`docs/E2E_API_SPEC.md`](docs/E2E_API_SPEC.md) | API·스트리밍·오류 코드 1장 요약 |
 | [`docs/DOCKER.md`](docs/DOCKER.md) | **Docker 풀스택**(웹+API), 볼륨·환경 변수 |
 | [`docs/PROBLEM_SOLUTION_LOG.md`](docs/PROBLEM_SOLUTION_LOG.md) | **문제·해결 이력**, 마이그레이션 시 리스크, 파일 맵 |
 | [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) | REST 경로·본문·스트리밍 `Accept` 주의 |
