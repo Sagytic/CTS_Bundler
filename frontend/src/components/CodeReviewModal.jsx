@@ -1,9 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { renderMarkdownComponents } from './markdownComponents';
+import MarkdownContent from './MarkdownContent';
+import Spinner from './Spinner';
 
 export default function CodeReviewModal({
   isOpen,
@@ -202,7 +201,7 @@ export default function CodeReviewModal({
 
             {currentReviewData.isLoading && !currentReviewData.aiResult && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '40px', gap: '12px' }}>
-                <div className="spinner" style={{ width: '36px', height: '36px', borderWidth: '3px' }}></div>
+                <Spinner size={36} borderWidth={3} />
                 <span style={{ color: '#8b949e', fontSize: '13px', textAlign: 'center', lineHeight: 1.5 }}>
                   Azure OpenAI에 요청 전송 중…
                   <br />
@@ -223,7 +222,7 @@ export default function CodeReviewModal({
             </label>
             {currentReviewData.isCodeLoading ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60%', gap: '15px' }}>
-                <div className="spinner" style={{ width: '30px', height: '30px', borderWidth: '3px' }}></div>
+                <Spinner size={30} borderWidth={3} />
                 <span style={{ color: '#a8cdff', fontSize: '13px' }}>SAP 서버에서 원본 코드를 추출 중입니다...</span>
               </div>
             ) : (
@@ -247,7 +246,7 @@ export default function CodeReviewModal({
             )}
             {currentReviewData.isLoading && !currentReviewData.aiResult && (
               <div style={{ display: 'flex', height: '100%', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#8b949e', gap: '16px' }}>
-                <div className="spinner" style={{ width: '48px', height: '48px', borderWidth: '4px', borderColor: '#388bfd', borderTopColor: 'transparent' }} />
+                <Spinner size={48} borderWidth={4} borderColor="#388bfd" borderTopColor="transparent" />
                 <div style={{ fontSize: '15px', textAlign: 'center', maxWidth: '360px', lineHeight: 1.6 }}>
                   모델이 리뷰 마크다운을 생성하고 있습니다.
                   <br />
@@ -256,10 +255,10 @@ export default function CodeReviewModal({
               </div>
             )}
             {currentReviewData.aiResult && (
-              <div className="markdown-github-theme" style={{ animation: 'fadeIn 0.5s ease-out' }}>
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={renderMarkdownComponents}>
+              <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
+                <MarkdownContent>
                   {currentReviewData.aiResult}
-                </ReactMarkdown>
+                </MarkdownContent>
                 {currentReviewData.isLoading && (
                   <span
                     style={{

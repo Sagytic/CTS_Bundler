@@ -2,6 +2,7 @@ import React from 'react';
 import { getTrObjectsTree } from '../utils/trUtils';
 import DeployReportModal from './DeployReportModal';
 import CodeReviewModal from './CodeReviewModal';
+import Spinner from './Spinner';
 
 function checkIfReviewNeeded(trkorr, trDesc, rawTrData) {
   if (trDesc && trDesc.includes('[IMG]')) return false;
@@ -135,7 +136,7 @@ export default function AnalyzerTab({
               >
                 {loadingAnalysis ? (
                   <>
-                    <div className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: '#000', borderTopColor: 'transparent' }}></div>
+                    <Spinner size={14} borderWidth={2} borderColor="#000" borderTopColor="transparent" />
                     실시간 모듈별 심의 진행 중...
                   </>
                 ) : selectedTrs.length === 0 ? (
