@@ -1,6 +1,8 @@
 """Simple SAP chat: single LLM call, no RAG."""
 from __future__ import annotations
 
+import logging
+
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,6 +19,8 @@ from api.observability import track_llm_request
 from api.prompts.simple_chat import SIMPLE_CHAT_SYSTEM_PROMPT
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import AzureChatOpenAI
+
+_logger = logging.getLogger("cts.ai")
 
 
 class SAPChatView(APIView):
@@ -58,6 +62,7 @@ class SAPChatView(APIView):
                 result = chain.invoke({"input": user_input})
             reply = result.content if hasattr(result, "content") else str(result)
         except Exception as e:
-            reply = f"챗봇 응답 중 오류가 발생했습니다: {str(e)}"
+            _logger.exception("Simple chat error: %s", e)
+            reply = "챗봇 응답 중 오류가 발생했습니다. 상세 내용은 서버 로그를 확인하세요."
 
         return Response({"reply": reply}, status=status.HTTP_200_OK)
