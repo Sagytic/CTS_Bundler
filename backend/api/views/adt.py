@@ -1,6 +1,7 @@
 """ADT write API: create/update ABAP objects via ADT (abap_adt_py)."""
 from __future__ import annotations
 
+import logging
 import re
 import sys
 from pathlib import Path
@@ -18,6 +19,8 @@ from api.config import (
     sap_adt_user,
 )
 
+
+_logger = logging.getLogger("cts.ai")
 
 _ADT_INSTALL_HINT = (
     "SAP ADT 쓰기에 필요한 Python 패키지가 없습니다. "
@@ -123,12 +126,13 @@ class AdtWriteView(APIView):
                 status=status.HTTP_200_OK,
             )
         except Exception as e:
+            _logger.exception("ADT write error: %s", e)
             if adt and lock_handle:
                 try:
                     adt.unlock(object_uri, lock_handle=lock_handle)
                 except Exception:
                     pass
             return Response(
-                {"error": str(e)},
+                {"error": "SAP ADT 통신 중 오류가 발생했습니다. 상세 내용은 서버 로그를 확인하세요."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

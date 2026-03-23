@@ -1,6 +1,7 @@
 """Ticket info and ticket mapping APIs."""
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
 import requests
@@ -11,6 +12,8 @@ from rest_framework.views import APIView
 
 from api.config import sap_client, sap_http_auth, sap_http_url
 from api.models import TicketMapping
+
+_logger = logging.getLogger("cts.ai")
 
 SAP_TIMEOUT_GET_CODE = 10
 
@@ -63,9 +66,11 @@ class TicketInfoView(APIView):
             if response.status_code == 200:
                 data = response.json()
                 return data.get("source_code", "코드를 반환받지 못했습니다.")
+            _logger.error("SAP connection failed: HTTP %s", response.status_code)
             return f"SAP 연결 실패: HTTP {response.status_code}"
         except requests.exceptions.RequestException as e:
-            return f"SAP 통신 에러: {str(e)}"
+            _logger.exception("SAP communication error: %s", e)
+            return "SAP 통신 오류가 발생했습니다. 상세 내용은 서버 로그를 확인하세요."
 
 
 class TicketMappingUpsertView(APIView):

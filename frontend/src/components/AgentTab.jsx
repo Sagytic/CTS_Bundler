@@ -1,7 +1,6 @@
 import React from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { renderMarkdownComponents } from './markdownComponents';
+import MarkdownContent from './MarkdownContent';
+import Spinner from './Spinner';
 
 const SUGGESTIONS = [
   '11355 사번 TR 목록 알려줘',
@@ -91,10 +90,10 @@ export default function AgentTab({
             <div className={`message-icon ${msg.role}`}>
               {msg.role === 'user' ? 'U' : <img src="/logo.png" alt="CB" style={{ width: '28px', height: 'auto' }} />}
             </div>
-            <div className="chat-message-content markdown-github-theme">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={renderMarkdownComponents}>
+            <div className="chat-message-content">
+              <MarkdownContent>
                 {msg.content}
-              </ReactMarkdown>
+              </MarkdownContent>
               {msg.role === 'ai' && (msg.steps || msg.react_used_tools !== undefined) && (
                 <StepsBlock steps={msg.steps} reactUsedTools={msg.react_used_tools ?? 0} />
               )}
@@ -110,7 +109,7 @@ export default function AgentTab({
               className="chat-message-content agent-chat-loading"
               style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
             >
-              <div className="spinner" />
+              <Spinner />
               <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>응답 생성 중…</span>
             </div>
           </div>
@@ -120,10 +119,10 @@ export default function AgentTab({
             <div className="message-icon ai">
               <img src="/logo.png" alt="CB" style={{ width: '28px', height: 'auto' }} />
             </div>
-            <div className="chat-message-content markdown-github-theme">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={renderMarkdownComponents}>
+            <div className="chat-message-content">
+              <MarkdownContent>
                 {streamPreview}
-              </ReactMarkdown>
+              </MarkdownContent>
               <span className="agent-stream-cursor" aria-hidden />
             </div>
           </div>

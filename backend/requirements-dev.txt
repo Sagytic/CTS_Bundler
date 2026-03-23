@@ -1,0 +1,3 @@
+# Optional dev tools (pip install -r requirements-dev.txt)
+-r requirements.txt
+pytest-html>=4.0

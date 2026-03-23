@@ -77,6 +77,10 @@ docker compose up --build
 
 GitHub Actions: `.github/workflows/ci.yml` — 백엔드 `pytest`, 프론트 `lint` + `vitest run`.
 
+## 테스트 로그 저장 (증빙용)
+
+레포 루트에서 `.\scripts\capture-test-results.ps1` 실행 시 `docs/E2E_EVIDENCE/test-outputs/`에 pytest·vitest 전체 로그가 저장됩니다. 상세는 [`docs/E2E_EVIDENCE/TEST_CAPTURE.md`](docs/E2E_EVIDENCE/TEST_CAPTURE.md).
+
 ## 레포 구조 (요약)
 
 ```

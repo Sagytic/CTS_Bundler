@@ -645,17 +645,6 @@ function App() {
 
       <style>{`
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .markdown-github-theme { color: #e6edf3; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif; font-size: 14px; line-height: 1.6; }
-        .markdown-github-theme h1, .markdown-github-theme h2, .markdown-github-theme h3 { border-bottom: 1px solid #21262d; padding-bottom: 0.3em; margin-bottom: 16px; color: #a8cdff; }
-        .markdown-github-theme p { margin-bottom: 16px; }
-        .markdown-github-theme a { color: #2f81f7; text-decoration: none; font-weight: bold; }
-        .markdown-github-theme a:hover { text-decoration: underline; }
-        .markdown-github-theme pre { background-color: #161b22; border-radius: 8px; padding: 16px; overflow: auto; border: 1px solid #30363d; margin-bottom: 20px; }
-        .markdown-github-theme code { background-color: rgba(110,118,129,0.4); padding: 0.2em 0.4em; border-radius: 6px; font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace; font-size: 85%; }
-        .markdown-github-theme pre code { background-color: transparent; padding: 0; font-size: 13px; color: #e6edf3; }
-        .markdown-github-theme ul, .markdown-github-theme ol { padding-left: 2em; margin-bottom: 16px; }
-        .markdown-github-theme li { margin-bottom: 0.25em; }
-        .markdown-github-theme strong { color: #58a6ff; }
       `}</style>
     </div>
   );

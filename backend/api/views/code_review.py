@@ -23,7 +23,7 @@ from api.config import (
     llm_code_review_temperature,
 )
 from api.observability import record_stream_usage, track_llm_request
-from api.persist_ai_reports import save_code_review_record, should_persist
+from api.persist_ai_reports import save_code_review_record
 from api.prompts.code_review import build_code_review_prompt_template
 from langchain_openai import AzureChatOpenAI
 

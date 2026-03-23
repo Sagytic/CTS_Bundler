@@ -2,6 +2,19 @@
 
 과제·레포트에 **제3자 재현·KPI 증빙**을 붙일 때 아래를 채우면 됩니다. 파일명은 예시이며 PDF/PNG 모두 가능.
 
+## pytest / vitest 실행 로그 (자동)
+
+레포 루트에서:
+
+```powershell
+.\scripts\capture-test-results.ps1
+```
+
+`test-outputs/pytest-output.txt`(백엔드), `vitest-output.txt`(프론트)가 갱신됩니다. `pip install pytest-html`(또는 `backend/requirements-dev.txt`) 설치 시 `pytest-report.html`도 생성.
+
+- 상세: [`TEST_CAPTURE.md`](./TEST_CAPTURE.md)
+- Linux/macOS: `bash scripts/capture-test-results.sh`
+
 ## 권장 첨부 (2~3개)
 
 1. **Quickstart 시나리오 A**: `POST /api/chat/` 성공 또는 503 응답 캡처 + 요청에 넣은 `X-Request-ID` + 서버 로그 한 줄.
