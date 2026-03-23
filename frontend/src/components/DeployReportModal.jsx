@@ -1,9 +1,7 @@
 import React from 'react';
 import { ANALYZER_STEP_ORDER } from '../api/analyzeStream';
 import MarkdownContent from './MarkdownContent';
-import { renderMarkdownComponents } from './markdownComponents';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import Spinner from './Spinner';
 
 const STEP_ORDER = ANALYZER_STEP_ORDER;
 const STEP_LABELS = {
@@ -85,7 +83,7 @@ export default function DeployReportModal({
           {loadingAnalysis ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '25px' }}>
               <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <div className="spinner" style={{ width: '65px', height: '65px', borderWidth: '4px', borderColor: '#238636', borderTopColor: 'transparent' }}></div>
+                <Spinner size={65} borderWidth={4} borderColor="#238636" borderTopColor="transparent" />
                 <div style={{ position: 'absolute', fontSize: '14px', color: '#fff', fontWeight: 'bold' }}>{elapsedTime}s</div>
               </div>
               <div
@@ -133,11 +131,9 @@ export default function DeployReportModal({
               </div>
             </div>
           ) : (
-            <div className="markdown-github-theme" style={{ animation: 'fadeIn 0.4s ease-out' }}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={renderMarkdownComponents}>
-                {analyzerResponse || '저장된 레포트가 없습니다.'}
-              </ReactMarkdown>
-            </div>
+            <MarkdownContent style={{ animation: 'fadeIn 0.4s ease-out' }}>
+              {analyzerResponse || '저장된 레포트가 없습니다.'}
+            </MarkdownContent>
           )}
         </div>
 

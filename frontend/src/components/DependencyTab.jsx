@@ -3,6 +3,7 @@ import ReactFlow, { Background, Controls, MiniMap, MarkerType } from 'reactflow'
 import 'reactflow/dist/style.css';
 import { api } from '../api/client';
 import { keepConnectedToRoot, getLayoutedElements } from '../utils/flowLayout';
+import Spinner from './Spinner';
 
 const SUGGESTED_OBJECTS = ['ZFIR1010', 'ZMMR0030', 'ZFIR5260', 'ZCOR7700', 'ZSTR0040', 'ZSDR1020', 'ZMMR1100'];
 
@@ -219,7 +220,7 @@ export default function DependencyTab({
           >
             {isSnapshotUpdating ? (
               <>
-                <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', borderColor: '#888', borderTopColor: 'transparent' }}></div>
+                <Spinner size={16} borderWidth={2} borderColor="#888" borderTopColor="transparent" />
                 DB 갱신 중...
               </>
             ) : (
@@ -265,7 +266,7 @@ export default function DependencyTab({
         )}
         {loadingGraph ? (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', flexDirection: 'column', gap: '15px' }}>
-            <div className="spinner" style={{ width: '40px', height: '40px', borderWidth: '4px' }}></div>
+            <Spinner size={40} borderWidth={4} />
             <div style={{ color: 'var(--accent-color)' }}>{targetObj} 오브젝트의 상하위 호출 관계를 추적 중입니다...</div>
           </div>
         ) : nodes.length > 0 ? (
