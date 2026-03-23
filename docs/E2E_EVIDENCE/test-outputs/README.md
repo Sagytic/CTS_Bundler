@@ -7,8 +7,10 @@
 레포 **루트**에서:
 
 ```powershell
-.\scripts\capture-test-results.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\capture-test-results.ps1
 ```
+
+또는 `scripts\capture-test-results.bat` (실행 정책 무관)
 
 `pytest-output.txt`(백엔드 34 tests), `vitest-output.txt`(프론트 16 tests)가 갱신됩니다.
 

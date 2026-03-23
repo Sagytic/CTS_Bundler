@@ -138,7 +138,7 @@ curl -X POST http://localhost:8000/api/agent/ \
    - Cursor → 설정(Settings) → MCP → Add new MCP server
    - **Command**: `python`
    - **Args**: `-m`, `api.mcp_server`
-   - **Cwd**: `backend` 폴더의 **절대 경로** (예: `C:\Users\11355\Desktop\Side_project\CTS_Bundelr\backend`)
+   - **Cwd**: `backend` 폴더의 **절대 경로** (예: `C:\Users\11355\Desktop\Side_project\CTS_Bundler\backend`)
    - 저장 후 Cursor 채팅에서 해당 MCP 서버를 선택하면, `list_transports`, `get_dependency_edges`, `get_ticket_mapping`, `search_rag`, `rag_ask` 도구를 사용할 수 있습니다.
 
 자세한 설정은 **[`MCP_README.md`](./MCP_README.md)** 를 참고하면 됩니다.

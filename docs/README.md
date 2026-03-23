@@ -4,7 +4,7 @@
 
 | 문서 | 설명 |
 |------|------|
-| [QUICKSTART_E2E.md](./QUICKSTART_E2E.md) | **E2E 10분 실행** — env, 로컬/Docker, curl 2종, 외부 없을 때 동작 |
+| [QUICKSTART_E2E.md](./QUICKSTART_E2E.md) | **E2E 10분 실행** — 제품명 **CTS Bundler** / 폴더 **`CTS_Bundler`**, 복붙 `curl.exe`, `-N` 스트리밍, 의존성 없을 때 UI 동작 |
 | [E2E_API_SPEC.md](./E2E_API_SPEC.md) | **E2E용 API 1장 요약** — 엔드포인트·스트리밍·표준 오류 |
 | [E2E_EVIDENCE/README.md](./E2E_EVIDENCE/README.md) | KPI·실패 시나리오 **증빙 첨부** 체크리스트 |
 | [E2E_EVIDENCE/TEST_CAPTURE.md](./E2E_EVIDENCE/TEST_CAPTURE.md) | **pytest/vitest 로그·스크린샷** (`scripts/capture-test-results.ps1`) |

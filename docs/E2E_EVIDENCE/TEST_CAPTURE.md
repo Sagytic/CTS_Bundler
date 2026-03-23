@@ -4,11 +4,28 @@
 
 ## 한 번에 실행 (권장)
 
-레포 **루트**에서 PowerShell:
+레포 **루트**에서:
+
+**방법 A — 정책 우회(설정 변경 없음, 권장)**
 
 ```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\capture-test-results.ps1
+```
+
+**방법 B — 배치 파일**
+
+```cmd
+scripts\capture-test-results.bat
+```
+
+**방법 C — 실행 정책을 한 번 허용한 뒤 `.ps1` 직접 실행**
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 .\scripts\capture-test-results.ps1
 ```
+
+> `이 시스템에서 스크립트를 실행할 수 없습니다` 오류는 **방법 A 또는 B**로 해결 가능.
 
 생성 위치: `docs/E2E_EVIDENCE/test-outputs/`
 

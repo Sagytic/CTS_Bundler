@@ -1,5 +1,7 @@
 # E2E API 스펙 요약 (1장)
 
+**제품명: CTS Bundler** · **레포 폴더명: `CTS_Bundler`** (경로·제출 시 혼동 방지)
+
 Base URL: 로컬 Django `http://127.0.0.1:8000/api/` · Docker UI 경유 `http://localhost:8080/api/` · 전체·예외는 [`API_CONTRACT.md`](./API_CONTRACT.md).
 
 ---

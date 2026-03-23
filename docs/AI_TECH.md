@@ -110,7 +110,7 @@
 
 #### 3) ADT MCP는 stdio 전용
 - **문제**: mario-andreschak/mcp-abap-adt는 **stdio**만 지원. Django는 HTTP 클라이언트로만 호출 가능.
-- **해결**: CTS_Bundelr 내 **mcp-abap-adt**에 **Streamable HTTP 진입점** 추가. Node.js `StreamableHTTPServerTransport`(MCP SDK) + `http.createServer`로 `/mcp` 엔드포인트 제공. **요청별로** 새 MCP 서버 인스턴스 + 새 transport 생성(Stateless 패턴), 응답 후 cleanup. (`mcp-abap-adt/src/server-http.ts`, `npm run start:http`). 자세한 설정은 [`EXTERNAL_SAP_MCP.md`](./EXTERNAL_SAP_MCP.md) 참고.
+- **해결**: CTS_Bundler 내 **mcp-abap-adt**에 **Streamable HTTP 진입점** 추가. Node.js `StreamableHTTPServerTransport`(MCP SDK) + `http.createServer`로 `/mcp` 엔드포인트 제공. **요청별로** 새 MCP 서버 인스턴스 + 새 transport 생성(Stateless 패턴), 응답 후 cleanup. (`mcp-abap-adt/src/server-http.ts`, `npm run start:http`). 자세한 설정은 [`EXTERNAL_SAP_MCP.md`](./EXTERNAL_SAP_MCP.md) 참고.
 
 #### 4) 로그에 `TaskGroup` / `ExceptionGroup`만 보임
 - **문제**: Python 3.11+에서 MCP 내부 `anyio` TaskGroup 실패 시 **중첩 예외**가 한 줄로만 보일 수 있음.

@@ -186,7 +186,7 @@ ADT MCP를 우리 프로젝트에서 쓰려면, 해당 MCP를 **HTTP(Streamable 
 
 - 우리 ReAct 에이전트는 **HTTP(Streamable HTTP)** 로만 외부 MCP를 호출합니다.
 - **mario-andreschak/mcp-abap-adt**는 기본이 **stdio**라서, 이 프로젝트만으로는 “HTTP 서버”로 띄우는 옵션이 문서에 없을 수 있습니다.
-- **CTS_Bundelr 내 mcp-abap-adt**에는 Streamable HTTP 진입점이 포함되어 있습니다.  
+- **CTS_Bundler 내 mcp-abap-adt**에는 Streamable HTTP 진입점이 포함되어 있습니다.  
   **1) HTTP로 ADT MCP 실행** (포트 기본 8021):
   ```bash
   cd mcp-abap-adt
