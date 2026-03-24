@@ -140,8 +140,8 @@ def review_deploy_final_report(
         meta["judge"] = j.model_dump()
     except Exception as e:
         _log.warning("deploy_self_rag judge failed: %s", e)
-        meta["error"] = str(e)
-        meta["summary"] = f"Self-RAG 심사 생략(오류): {e}"
+        meta["error"] = "Judge 실패"
+        meta["summary"] = "Self-RAG 심사 생략(오류)"
         return final_report, meta
 
     meta["summary"] = (

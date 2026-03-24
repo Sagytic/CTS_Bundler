@@ -149,7 +149,7 @@ class SAPChatRAGView(APIView):
             reply = result.content if hasattr(result, "content") else str(result)
         except Exception as e:
             _logger.exception("Chat RAG error: %s", e)
-            reply = "챗봇 응답 중 오류가 발생했습니다. 상세 내용은 서버 로그를 확인하세요."
+            reply = "챗봇 응답 중 오류가 발생했습니다. 상세 내용은 시스템 로그를 확인해 주세요."
 
         if use_cache and cache_key and ttl > 0:
             _CHAT_CACHE[cache_key] = (reply, time.time())

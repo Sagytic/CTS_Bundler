@@ -66,7 +66,9 @@ def fetch_recent_transports_via_http(user_id: Optional[str] = None) -> dict[str,
             "message": f"HTTP {response.status_code}: {response.text[:500]}",
         }
     except requests.exceptions.RequestException as e:
-        return {"status": "error", "message": str(e)}
+        import logging
+        logging.getLogger("cts.ai").exception("SAP client error")
+        return {"status": "error", "message": "SAP 서버 통신 중 오류가 발생했습니다. 상세 내용은 서버 로그를 확인하세요."}
 
 
 def fetch_dependency_graph_via_http(target_obj: str = "") -> dict[str, Any]:
@@ -101,7 +103,9 @@ def fetch_dependency_graph_via_http(target_obj: str = "") -> dict[str, Any]:
             "message": f"HTTP {response.status_code}: {response.text[:500]}",
         }
     except requests.exceptions.RequestException as e:
-        return {"status": "error", "message": str(e)}
+        import logging
+        logging.getLogger("cts.ai").exception("SAP client error")
+        return {"status": "error", "message": "SAP 서버 통신 중 오류가 발생했습니다. 상세 내용은 서버 로그를 확인하세요."}
 
 
 def fetch_object_usage_via_http(trkorr: Optional[str]) -> dict[str, Any]:
@@ -138,4 +142,6 @@ def fetch_object_usage_via_http(trkorr: Optional[str]) -> dict[str, Any]:
             "message": f"HTTP {response.status_code}: {response.text[:500]}",
         }
     except requests.exceptions.RequestException as e:
-        return {"status": "error", "message": str(e)}
+        import logging
+        logging.getLogger("cts.ai").exception("SAP client error")
+        return {"status": "error", "message": "SAP 서버 통신 중 오류가 발생했습니다. 상세 내용은 서버 로그를 확인하세요."}

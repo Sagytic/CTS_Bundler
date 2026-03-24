@@ -76,7 +76,7 @@ def crag_retrieve_for_deploy_review(
         batch1 = retrieve(query.strip(), k=k)
     except Exception as e:
         _log.warning("deploy_research_rag retrieve failed: %s", e)
-        return "", {**meta, "error": str(e)}
+        return "", {**meta, "error": "Retrieve 실패"}
 
     meta["rounds"].append({"query": query.strip(), "n_hits": len(batch1)})
 
