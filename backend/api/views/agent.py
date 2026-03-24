@@ -212,8 +212,8 @@ def _make_tools() -> tuple[list[Any], dict[str, int]]:
         adt_list = get_external_adt_tools()
         n_adt = len(adt_list)
         tools.extend(adt_list)
-    except Exception:
-        pass
+    except Exception as e:
+        _logger.warning("Failed to load external ADT tools: %s", e)
 
     tools.append(search_rag)
 
