@@ -99,7 +99,9 @@ class AnalyzeGuardianView(APIView):
         self.req_id = getattr(request, "request_id", "-")
         self.persist_report = should_persist(request.data)
         self.pipeline_flags = resolve_deploy_pipeline_flags(request.data)
-        self.include_pipeline_summary = bool(request.data.get("include_pipeline_summary"))
+        self.include_pipeline_summary = bool(
+            request.data.get("include_pipeline_summary")
+        )
 
         self.progress: dict[str, str] = {"step": "", "label": ""}
         self.result_holder: list[dict] = []
@@ -122,14 +124,28 @@ class AnalyzeGuardianView(APIView):
         app = self._build_graph()
 
         initial_state = {
-            "user_input": self.user_input, "sap_data_raw": [], "rule_score": 0, "rule_reasons": [],
-            "deploy_risk_grade": "Low", "deploy_risk_reason": "", "deploy_risk_actions": [],
-            "bc_analysis": "", "fi_analysis": "", "co_analysis": "",
-            "mm_analysis": "", "sd_analysis": "", "pp_analysis": "",
-            "discussion_history": "", "final_report": "",
-            "review_queue": [], "called_counts": {}, "object_usage_data": [],
-            "research_context": "", "research_meta": {},
-            "graph_context": "", "graph_meta": {},
+            "user_input": self.user_input,
+            "sap_data_raw": [],
+            "rule_score": 0,
+            "rule_reasons": [],
+            "deploy_risk_grade": "Low",
+            "deploy_risk_reason": "",
+            "deploy_risk_actions": [],
+            "bc_analysis": "",
+            "fi_analysis": "",
+            "co_analysis": "",
+            "mm_analysis": "",
+            "sd_analysis": "",
+            "pp_analysis": "",
+            "discussion_history": "",
+            "final_report": "",
+            "review_queue": [],
+            "called_counts": {},
+            "object_usage_data": [],
+            "research_context": "",
+            "research_meta": {},
+            "graph_context": "",
+            "graph_meta": {},
             "self_rag_meta": {},
             "pipeline_flags": self.pipeline_flags,
             "pipeline_timings_ms": {},
@@ -165,14 +181,31 @@ class AnalyzeGuardianView(APIView):
 
             if self.selected_trs:
                 for parent_tr_no in self.selected_trs:
-                    parent_obj = next((tr for tr in raw_tr_data if (tr.get("TRKORR") or tr.get("trkorr")) == parent_tr_no), None)
+                    parent_obj = next(
+                        (
+                            tr
+                            for tr in raw_tr_data
+                            if (tr.get("TRKORR") or tr.get("trkorr")) == parent_tr_no
+                        ),
+                        None,
+                    )
                     if not parent_obj:
                         continue
-                    merged_objects = list(parent_obj.get("objects", parent_obj.get("OBJECTS", [])))
-                    merged_keys = list(parent_obj.get("keys", parent_obj.get("KEYS", [])))
-                    children = [tr for tr in raw_tr_data if (tr.get("STRKORR") or tr.get("strkorr")) == parent_tr_no]
+                    merged_objects = list(
+                        parent_obj.get("objects", parent_obj.get("OBJECTS", []))
+                    )
+                    merged_keys = list(
+                        parent_obj.get("keys", parent_obj.get("KEYS", []))
+                    )
+                    children = [
+                        tr
+                        for tr in raw_tr_data
+                        if (tr.get("STRKORR") or tr.get("strkorr")) == parent_tr_no
+                    ]
                     for child in children:
-                        merged_objects.extend(child.get("objects", child.get("OBJECTS", [])))
+                        merged_objects.extend(
+                            child.get("objects", child.get("OBJECTS", []))
+                        )
                         merged_keys.extend(child.get("keys", child.get("KEYS", [])))
                     enriched_tr = dict(parent_obj)
                     enriched_tr["objects"] = merged_objects
@@ -195,24 +228,42 @@ class AnalyzeGuardianView(APIView):
                     obj_name = str(obj.get("OBJ_NAME", obj.get("obj_name", "")))
                     if obj_type == "TABL":
                         tabl_count += 1
-                        reasons.append(f"[{tr_num}] 테이블 구조({obj_name}) 변경 (DB 락·스키마 위험)")
+                        reasons.append(
+                            f"[{tr_num}] 테이블 구조({obj_name}) 변경 (DB 락·스키마 위험)"
+                        )
                     elif obj_type == "CLAS":
                         clas_count += 1
-                        reasons.append(f"[{tr_num}] 클래스({obj_name}) 변경 (사이드 이펙트 위험)")
+                        reasons.append(
+                            f"[{tr_num}] 클래스({obj_name}) 변경 (사이드 이펙트 위험)"
+                        )
                     elif obj_type == "PROG":
                         prog_count += 1
                         reasons.append(f"[{tr_num}] 프로그램({obj_name}) 변경")
                     elif obj_type == "SICF":
                         sicf_count += 1
-                        reasons.append(f"[{tr_num}] SICF 노드({obj_name}) 변경 (서비스 노출 위험)")
+                        reasons.append(
+                            f"[{tr_num}] SICF 노드({obj_name}) 변경 (서비스 노출 위험)"
+                        )
 
                 keys = tr.get("keys", tr.get("KEYS", []))
                 if keys:
                     key_count = len(keys)
                     total_keys += key_count
-                    modified_tables = list(set([str(k.get("MASTERNAME", k.get("mastername", ""))) for k in keys if k.get("MASTERNAME") or k.get("mastername")]))
-                    table_list_str = ", ".join(modified_tables) if modified_tables else "특정"
-                    reasons.append(f"[{tr_num}] {table_list_str} 테이블 레코드 {key_count}건 덮어쓰기")
+                    modified_tables = list(
+                        set(
+                            [
+                                str(k.get("MASTERNAME", k.get("mastername", "")))
+                                for k in keys
+                                if k.get("MASTERNAME") or k.get("mastername")
+                            ]
+                        )
+                    )
+                    table_list_str = (
+                        ", ".join(modified_tables) if modified_tables else "특정"
+                    )
+                    reasons.append(
+                        f"[{tr_num}] {table_list_str} 테이블 레코드 {key_count}건 덮어쓰기"
+                    )
 
             has_struct_change = tabl_count > 0 or sicf_count > 0 or clas_count > 0
             has_data_overwrite = total_keys > 0
@@ -229,13 +280,23 @@ class AnalyzeGuardianView(APIView):
             concentration_bonus = 0
             for tr in tr_data:
                 objects = tr.get("objects", tr.get("OBJECTS", []))
-                types = [str(o.get("OBJECT", o.get("object", ""))).upper() for o in objects]
+                types = [
+                    str(o.get("OBJECT", o.get("object", ""))).upper() for o in objects
+                ]
                 if any(cnt >= 3 for cnt in Counter(types).values()):
                     concentration_bonus = 10
                     break
 
             multi_impact_bonus = 15 if (has_struct_change and has_data_overwrite) else 0
-            raw_score = tabl_pts + sicf_pts + clas_pts + prog_pts + key_pts + concentration_bonus + multi_impact_bonus
+            raw_score = (
+                tabl_pts
+                + sicf_pts
+                + clas_pts
+                + prog_pts
+                + key_pts
+                + concentration_bonus
+                + multi_impact_bonus
+            )
             score = min(int(raw_score), 100)
 
             if score <= 35:
@@ -264,12 +325,35 @@ class AnalyzeGuardianView(APIView):
             initial_queue = ["bc", "fi", "co", "mm", "sd", "pp"]
 
             object_usage_list = []
-            for tr_no in (self.selected_trs or []):
-                usage_result = fetch_object_usage_via_http(tr_no)
-                if usage_result.get("status") == "success" and usage_result.get("data"):
-                    object_usage_list.append(usage_result["data"])
+            if self.selected_trs:
+                import concurrent.futures
+
+                with concurrent.futures.ThreadPoolExecutor(
+                    max_workers=min(len(self.selected_trs), 10)
+                ) as executor:
+                    futures = {
+                        executor.submit(fetch_object_usage_via_http, tr_no): tr_no
+                        for tr_no in self.selected_trs
+                    }
+                    for future in concurrent.futures.as_completed(futures):
+                        try:
+                            usage_result = future.result()
+                            if usage_result.get(
+                                "status"
+                            ) == "success" and usage_result.get("data"):
+                                object_usage_list.append(usage_result["data"])
+                        except Exception as e:
+                            tr_no = futures[future]
+                            _logger.exception(
+                                "Error fetching object usage concurrently for TR %s: %s",
+                                tr_no,
+                                e,
+                            )
+
             if object_usage_list:
-                print(f"✅ [System] TR 오브젝트 사용처 {len(object_usage_list)}건 수집 완료")
+                print(
+                    f"✅ [System] TR 오브젝트 사용처 {len(object_usage_list)}건 수집 완료"
+                )
         else:
             initial_history = "**시스템**: TR 데이터를 불러오는 데 실패하여 토의를 진행할 수 없습니다.\n\n"
             initial_queue = []
@@ -284,7 +368,11 @@ class AnalyzeGuardianView(APIView):
             "discussion_history": initial_history,
             "review_queue": initial_queue,
             "called_counts": {"bc": 0, "fi": 0, "co": 0, "mm": 0, "sd": 0, "pp": 0},
-            "object_usage_data": object_usage_list if sap_result["status"] == "success" and self.selected_trs else [],
+            "object_usage_data": (
+                object_usage_list
+                if sap_result["status"] == "success" and self.selected_trs
+                else []
+            ),
         }
 
     def _node_research(self, state: AgentState):
@@ -319,7 +407,12 @@ class AnalyzeGuardianView(APIView):
             )
         else:
             graph_block = "(GraphRAG 생략: pipeline.graph=false 또는 환경 설정)"
-            gmeta = {"skipped": True, "edge_count": 0, "seed_count": 0, "reason": "pipeline_or_env"}
+            gmeta = {
+                "skipped": True,
+                "edge_count": 0,
+                "seed_count": 0,
+                "reason": "pipeline_or_env",
+            }
         timings["graph_rag_ms"] = round((time.perf_counter() - t_g0) * 1000, 2)
 
         t_r0 = time.perf_counter()
@@ -348,7 +441,9 @@ class AnalyzeGuardianView(APIView):
                 "final_query": "",
             }
         timings["research_rag_ms"] = round((time.perf_counter() - t_r0) * 1000, 2)
-        timings["research_node_total_ms"] = round((time.perf_counter() - t_node0) * 1000, 2)
+        timings["research_node_total_ms"] = round(
+            (time.perf_counter() - t_node0) * 1000, 2
+        )
         summary_line = (
             f"쿼리 `{rmeta.get('final_query', q)[:120]}` → "
             f"검색 라운드 {len(rmeta.get('rounds', []))}회"
@@ -383,7 +478,11 @@ class AnalyzeGuardianView(APIView):
                 current_queue = list(state.get("review_queue", []))
                 if current_queue and current_queue[0] == module_name.lower():
                     current_queue.pop(0)
-                return {state_key: "데이터 없음", "discussion_history": state["discussion_history"], "review_queue": current_queue}
+                return {
+                    state_key: "데이터 없음",
+                    "discussion_history": state["discussion_history"],
+                    "review_queue": current_queue,
+                }
 
             prompt_text = (
                 f"당신은 SAP {module_name} 모듈 최고 전문가입니다. {role_desc}\n"
@@ -407,21 +506,28 @@ class AnalyzeGuardianView(APIView):
             )
             prompt = ChatPromptTemplate.from_messages([("system", prompt_text)])
             chain = prompt | self.llm_fast
-            res = chain.invoke({
-                "research": (state.get("research_context") or "").strip()
-                or "(내부 지식베이스 검색 결과 없음 또는 RAG 미적재)",
-                "graph": (state.get("graph_context") or "").strip()
-                or "(GraphRAG 간선 없음 또는 비활성)",
-                "history": state["discussion_history"],
-                "data": json.dumps(state["sap_data_raw"], ensure_ascii=False),
-            })
+            res = chain.invoke(
+                {
+                    "research": (state.get("research_context") or "").strip()
+                    or "(내부 지식베이스 검색 결과 없음 또는 RAG 미적재)",
+                    "graph": (state.get("graph_context") or "").strip()
+                    or "(GraphRAG 간선 없음 또는 비활성)",
+                    "history": state["discussion_history"],
+                    "data": json.dumps(state["sap_data_raw"], ensure_ascii=False),
+                }
+            )
             content = res.content
-            new_history = state["discussion_history"] + f"**{module_name} 에이전트**: {content}\n\n"
+            new_history = (
+                state["discussion_history"]
+                + f"**{module_name} 에이전트**: {content}\n\n"
+            )
             current_queue = list(state.get("review_queue", []))
             called_counts = dict(state.get("called_counts", {}))
             if current_queue and current_queue[0] == module_name.lower():
                 current_queue.pop(0)
-            called_counts[module_name.lower()] = called_counts.get(module_name.lower(), 0) + 1
+            called_counts[module_name.lower()] = (
+                called_counts.get(module_name.lower(), 0) + 1
+            )
             called_modules = re.findall(r"@(BC|FI|CO|MM|SD|PP)", content, re.IGNORECASE)
             for mod in reversed(called_modules):
                 mod_lower = mod.lower()
@@ -429,9 +535,17 @@ class AnalyzeGuardianView(APIView):
                     if called_counts.get(mod_lower, 0) < 2:
                         current_queue.insert(0, mod_lower)
                     else:
-                        print(f"   ↳ 🛑 [{mod_lower.upper()}] 모듈은 이미 최대 발언 횟수를 채워 반송을 차단합니다.")
+                        print(
+                            f"   ↳ 🛑 [{mod_lower.upper()}] 모듈은 이미 최대 발언 횟수를 채워 반송을 차단합니다."
+                        )
             print(f"   ↳ ✨ [{module_name}] 검토 완료. (남은 대기열: {current_queue})")
-            return {state_key: content, "discussion_history": new_history, "review_queue": current_queue, "called_counts": called_counts}
+            return {
+                state_key: content,
+                "discussion_history": new_history,
+                "review_queue": current_queue,
+                "called_counts": called_counts,
+            }
+
         return expert_node
 
     def _node_report_generator(self, state: AgentState):
@@ -444,28 +558,37 @@ class AnalyzeGuardianView(APIView):
         grade = state.get("deploy_risk_grade") or "Low"
         grade_ko = "낮음" if grade == "Low" else "보통" if grade == "Medium" else "높음"
         reason = state.get("deploy_risk_reason") or ""
-        actions = state.get("deploy_risk_actions") or DEPLOY_ACTIONS.get(grade, DEPLOY_ACTIONS["Low"])
+        actions = state.get("deploy_risk_actions") or DEPLOY_ACTIONS.get(
+            grade, DEPLOY_ACTIONS["Low"]
+        )
         actions_text = "\n".join(f"- {a}" for a in actions)
         usage_data = state.get("object_usage_data") or []
         usage_json = json.dumps(usage_data, ensure_ascii=False) if usage_data else "[]"
 
         usage_section_instruction = (
-            "\n\n### 4. TR 오브젝트 사용처 및 테스트 권장\n"
-            "아래 [TR 오브젝트 사용처] 데이터를 반드시 반영하세요. "
-            "각 오브젝트에 대해 **어디서(호출하는 프로그램/클래스)** **어떤 연산(호출/SUBMIT/MODIFY/UPDATE/INSERT/DELETE/APPEND/SELECT)**으로 사용되는지** 요약하고, "
-            "**그 프로그램들에 대한 테스트가 필요함**을 명시하세요. 데이터가 없으면 '사용처 데이터 없음' 한 줄로 표시.\n\n"
-            "[TR 오브젝트 사용처]\n{usage_json}\n\n"
-            "### 5. 수석 아키텍트 종합 요약\n"
-            "전체를 3~5문장으로 요약. 어떤 변경·어떤 모듈 검증·배포 시 유의점을 한눈에 정리.\n\n"
-            "### 6. 최종 결론\n"
-        ) if usage_data else (
-            "\n\n### 4. 수석 아키텍트 종합 요약\n"
-            "전체를 3~5문장으로 요약. 어떤 변경·어떤 모듈 검증·배포 시 유의점을 한눈에 정리.\n\n"
-            "### 5. 최종 결론\n"
+            (
+                "\n\n### 4. TR 오브젝트 사용처 및 테스트 권장\n"
+                "아래 [TR 오브젝트 사용처] 데이터를 반드시 반영하세요. "
+                "각 오브젝트에 대해 **어디서(호출하는 프로그램/클래스)** **어떤 연산(호출/SUBMIT/MODIFY/UPDATE/INSERT/DELETE/APPEND/SELECT)**으로 사용되는지** 요약하고, "
+                "**그 프로그램들에 대한 테스트가 필요함**을 명시하세요. 데이터가 없으면 '사용처 데이터 없음' 한 줄로 표시.\n\n"
+                "[TR 오브젝트 사용처]\n{usage_json}\n\n"
+                "### 5. 수석 아키텍트 종합 요약\n"
+                "전체를 3~5문장으로 요약. 어떤 변경·어떤 모듈 검증·배포 시 유의점을 한눈에 정리.\n\n"
+                "### 6. 최종 결론\n"
+            )
+            if usage_data
+            else (
+                "\n\n### 4. 수석 아키텍트 종합 요약\n"
+                "전체를 3~5문장으로 요약. 어떤 변경·어떤 모듈 검증·배포 시 유의점을 한눈에 정리.\n\n"
+                "### 5. 최종 결론\n"
+            )
         )
 
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", "당신은 배포 위원회 수석 아키텍트입니다. 회의록을 바탕으로 **품질 높은** 최종 마크다운 보고서를 작성하세요. "
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    "당신은 배포 위원회 수석 아키텍트입니다. 회의록을 바탕으로 **품질 높은** 최종 마크다운 보고서를 작성하세요. "
                     "담당자 의견을 충실히 반영하여 한 줄로 줄이지 마세요.\n\n"
                     "[🚨 마크다운 규칙] 문단 들여쓰기(Space 4칸 이상) 금지. 섹션 제목 위아래 빈 줄 2번.\n\n"
                     "[보고서 필수 포맷]\n\n"
@@ -478,8 +601,8 @@ class AnalyzeGuardianView(APIView):
                     "### 3. 배포 위원회 검토 (모듈별)\n"
                     "각 모듈별 #### 소제목(예: #### BC 모듈 검토)을 단 뒤, 담당자가 언급한 **연관 오브젝트·테이블·비즈니스 영향·필요 테스트**를 "
                     "빠짐없이 포함해 **모듈당 4~5문장**으로 풀어서 서술하세요. 압축·한 줄 요약 금지. 특이사항 없음 모듈만 한 줄로 묶으세요."
-                    + usage_section_instruction +
-                    "- **최종 결정**: 승인 / 조건부 승인 / 반려\n"
+                    + usage_section_instruction
+                    + "- **최종 결정**: 승인 / 조건부 승인 / 반려\n"
                     "- **조치사항**: (권장 액션 참고하여 2~3문장)\n\n"
                     "[시스템 판정] 등급={grade}, 이유={reason}\n\n"
                     "[내부 지식베이스 (Researcher/CRAG)]\n"
@@ -487,21 +610,23 @@ class AnalyzeGuardianView(APIView):
                     "[구조화 종속성 그래프 (GraphRAG)]\n"
                     "{graph}\n\n"
                     "[전체 회의록]\n"
-                    "{history}"),
-        ])
+                    "{history}",
+                ),
+            ]
+        )
         chain = prompt | self.llm
-        res = chain.invoke({
-            "grade": grade,
-            "grade_ko": grade_ko,
-            "reason": reason,
-            "actions_text": actions_text,
-            "usage_json": usage_json,
-            "research": (state.get("research_context") or "").strip()
-            or "(없음)",
-            "graph": (state.get("graph_context") or "").strip()
-            or "(없음)",
-            "history": state["discussion_history"],
-        })
+        res = chain.invoke(
+            {
+                "grade": grade,
+                "grade_ko": grade_ko,
+                "reason": reason,
+                "actions_text": actions_text,
+                "usage_json": usage_json,
+                "research": (state.get("research_context") or "").strip() or "(없음)",
+                "graph": (state.get("graph_context") or "").strip() or "(없음)",
+                "history": state["discussion_history"],
+            }
+        )
         final_text = res.content.strip()
         if final_text.startswith("```markdown"):
             final_text = final_text[11:].strip()
@@ -563,7 +688,9 @@ class AnalyzeGuardianView(APIView):
     def _central_router(self, state: AgentState) -> str:
         queue = state.get("review_queue", [])
         if queue:
-            print(f"🚦 [라우터] 다음 차례인 '{queue[0].upper()}' 모듈로 문서를 전달합니다.")
+            print(
+                f"🚦 [라우터] 다음 차례인 '{queue[0].upper()}' 모듈로 문서를 전달합니다."
+            )
             return queue[0]
         print("🚦 [라우터] 대기열이 비었습니다. 수석 아키텍트에게 전달합니다.")
         return "architect"
@@ -572,12 +699,54 @@ class AnalyzeGuardianView(APIView):
         workflow = StateGraph(AgentState)
         workflow.add_node("fetch_data", self._node_fetch_and_score)
         workflow.add_node("research", self._node_research)
-        workflow.add_node("bc", self._create_expert_node("BC", "시스템 인프라, DB 락, 권한, 공통 클래스 및 SICF등 SAP BC 관련 내용을 책임집니다.", "bc_analysis"))
-        workflow.add_node("fi", self._create_expert_node("FI", "재무회계, 전표 처리 테이블 등 SAP FI 관련 내용을 책임집니다.", "fi_analysis"))
-        workflow.add_node("co", self._create_expert_node("CO", "관리회계 및 수익성 분석 등 SAP CO 관련 내용을 책임집니다.", "co_analysis"))
-        workflow.add_node("mm", self._create_expert_node("MM", "자재/구매/재고 관련 테이블과 로직 등 SAP MM 관련 내용을 책임집니다.", "mm_analysis"))
-        workflow.add_node("sd", self._create_expert_node("SD", "영업/판매 관련 기능과 오더 처리 등 SAP SD 관련 내용을 책임집니다.", "sd_analysis"))
-        workflow.add_node("pp", self._create_expert_node("PP", "생산 계획 및 제조 실행 등 SAP PP 관련 내용을 책임집니다.", "pp_analysis"))
+        workflow.add_node(
+            "bc",
+            self._create_expert_node(
+                "BC",
+                "시스템 인프라, DB 락, 권한, 공통 클래스 및 SICF등 SAP BC 관련 내용을 책임집니다.",
+                "bc_analysis",
+            ),
+        )
+        workflow.add_node(
+            "fi",
+            self._create_expert_node(
+                "FI",
+                "재무회계, 전표 처리 테이블 등 SAP FI 관련 내용을 책임집니다.",
+                "fi_analysis",
+            ),
+        )
+        workflow.add_node(
+            "co",
+            self._create_expert_node(
+                "CO",
+                "관리회계 및 수익성 분석 등 SAP CO 관련 내용을 책임집니다.",
+                "co_analysis",
+            ),
+        )
+        workflow.add_node(
+            "mm",
+            self._create_expert_node(
+                "MM",
+                "자재/구매/재고 관련 테이블과 로직 등 SAP MM 관련 내용을 책임집니다.",
+                "mm_analysis",
+            ),
+        )
+        workflow.add_node(
+            "sd",
+            self._create_expert_node(
+                "SD",
+                "영업/판매 관련 기능과 오더 처리 등 SAP SD 관련 내용을 책임집니다.",
+                "sd_analysis",
+            ),
+        )
+        workflow.add_node(
+            "pp",
+            self._create_expert_node(
+                "PP",
+                "생산 계획 및 제조 실행 등 SAP PP 관련 내용을 책임집니다.",
+                "pp_analysis",
+            ),
+        )
         workflow.add_node("architect", self._node_report_generator)
         workflow.add_node("self_rag", self._node_self_rag)
         workflow.set_entry_point("fetch_data")
@@ -588,7 +757,15 @@ class AnalyzeGuardianView(APIView):
             workflow.add_conditional_edges(
                 mod,
                 self._central_router,
-                {"bc": "bc", "fi": "fi", "co": "co", "mm": "mm", "sd": "sd", "pp": "pp", "architect": "architect"}
+                {
+                    "bc": "bc",
+                    "fi": "fi",
+                    "co": "co",
+                    "mm": "mm",
+                    "sd": "sd",
+                    "pp": "pp",
+                    "architect": "architect",
+                },
             )
         workflow.add_edge("architect", "self_rag")
         workflow.add_edge("self_rag", END)
@@ -633,7 +810,9 @@ class AnalyzeGuardianView(APIView):
         except Exception as e:
             _logger.exception("Analyze guardian unexpected error: %s", e)
             self.result_holder.append(
-                {"final_report": "분석 중 예기치 않은 오류가 발생했습니다. 상세 내용은 서버 로그를 확인하세요."}
+                {
+                    "final_report": "분석 중 예기치 않은 오류가 발생했습니다. 상세 내용은 서버 로그를 확인하세요."
+                }
             )
             print(f"🔥 [Error] {e}")
 
@@ -644,7 +823,10 @@ class AnalyzeGuardianView(APIView):
         t.start()
         last_sent = None
         while t.is_alive():
-            cur = {"step": self.progress.get("step", ""), "label": self.progress.get("label", "")}
+            cur = {
+                "step": self.progress.get("step", ""),
+                "label": self.progress.get("label", ""),
+            }
             if cur != last_sent:
                 last_sent = dict(cur)
                 yield json.dumps(cur, ensure_ascii=False) + "\n"
