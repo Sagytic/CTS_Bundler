@@ -64,7 +64,7 @@ def ingest_from_django_models(max_docs=None):
     cap = max_docs if max_docs is not None else env_int("RAG_INGEST_MAX_DOCS", 3000)
     docs = []
     # DependencySnapshot: "source_obj calls target_obj (group N)"
-    for row in DependencySnapshot.objects.all()[:cap]:
+    for row in DependencySnapshot.objects.all()[:cap].iterator(chunk_size=1000):
         docs.append(Document(
             page_content=f"SAP 오브젝트 종속성: {row.source_obj} → {row.target_obj} (유형: {row.target_group})",
             metadata={"source": "dependency", "source_obj": row.source_obj, "target_obj": row.target_obj},
@@ -72,7 +72,7 @@ def ingest_from_django_models(max_docs=None):
     remaining = cap - len(docs)
     # TicketMapping (남은 cap만큼만)
     if remaining > 0:
-        for row in TicketMapping.objects.all()[:remaining]:
+        for row in TicketMapping.objects.all()[:remaining].iterator(chunk_size=1000):
             docs.append(Document(
                 page_content=f"TR/오브젝트 매핑: {row.target_key} | 티켓: {row.ticket_id} | 요구사항: {row.description}",
                 metadata={"source": "ticket", "target_key": row.target_key, "ticket_id": row.ticket_id},
