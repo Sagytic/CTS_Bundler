@@ -203,8 +203,8 @@ def _make_tools() -> tuple[list[Any], dict[str, int]]:
         docs_list = get_external_sap_docs_tools()
         n_docs = len(docs_list)
         tools.extend(docs_list)
-    except Exception:
-        pass
+    except Exception as e:
+        _logger.warning("Failed to load external SAP Docs MCP tools: %s", e)
 
     try:
         from api.mcp_client import get_external_adt_tools
@@ -213,7 +213,7 @@ def _make_tools() -> tuple[list[Any], dict[str, int]]:
         n_adt = len(adt_list)
         tools.extend(adt_list)
     except Exception as e:
-        _logger.warning("Failed to load external ADT tools: %s", e)
+        _logger.warning("Failed to load external ADT MCP tools: %s", e)
 
     tools.append(search_rag)
 
