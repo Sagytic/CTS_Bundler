@@ -250,13 +250,11 @@ class AnalyzeGuardianView(APIView):
                     key_count = len(keys)
                     total_keys += key_count
                     modified_tables = list(
-                        set(
-                            [
-                                str(k.get("MASTERNAME", k.get("mastername", "")))
-                                for k in keys
-                                if k.get("MASTERNAME") or k.get("mastername")
-                            ]
-                        )
+                        {
+                            str(k.get("MASTERNAME", k.get("mastername", "")))
+                            for k in keys
+                            if k.get("MASTERNAME") or k.get("mastername")
+                        }
                     )
                     table_list_str = (
                         ", ".join(modified_tables) if modified_tables else "특정"
