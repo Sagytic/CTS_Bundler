@@ -8,6 +8,7 @@ from typing import Any
 import requests
 from langchain_openai import AzureChatOpenAI
 from rest_framework import status
+from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -99,13 +100,19 @@ class DependencyGraphView(APIView):
                     shared_programs.add(dep.source_obj)
             programs_to_expand = shared_programs | z_programs_called
             if programs_to_expand:
-                deep_deps = DependencySnapshot.objects.filter(source_obj__in=programs_to_expand)
-                for dep in deep_deps:
+                deep_deps = DependencySnapshot.objects.filter(
+                    Q(source_obj__in=programs_to_expand) &
+                    (
+                        Q(target_obj__startswith='Z') |
+                        Q(target_obj__startswith='Y') |
+                        Q(target_obj__in=('EKKO', 'EKPO', 'MSEG', 'MARA', 'VBAK', 'VBAP', 'BKPF', 'BSEG'))
+                    )
+                )
+                for dep in deep_deps.iterator():
                     if len(nodes_dict) >= max_nodes_initial or len(raw_links) >= max_links_initial:
                         break
-                    if dep.target_obj.startswith('Z') or dep.target_obj.startswith('Y') or dep.target_obj in ('EKKO', 'EKPO', 'MSEG', 'MARA', 'VBAK', 'VBAP', 'BKPF', 'BSEG'):
-                        add_node(dep.target_obj, dep.target_group)
-                        raw_links.add((dep.source_obj, dep.target_obj))
+                    add_node(dep.target_obj, dep.target_group)
+                    raw_links.add((dep.source_obj, dep.target_obj))
 
         raw_links_list = [{"source": s, "target": t} for s, t in raw_links]
 
