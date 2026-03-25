@@ -180,15 +180,18 @@ class AnalyzeGuardianView(APIView):
             raw_tr_data = sap_result["data"]
 
             if self.selected_trs:
+                tr_by_trkorr = {}
+                children_by_strkorr = {}
+                for tr in raw_tr_data:
+                    trkorr = tr.get("TRKORR") or tr.get("trkorr")
+                    if trkorr:
+                        tr_by_trkorr[trkorr] = tr
+                    strkorr = tr.get("STRKORR") or tr.get("strkorr")
+                    if strkorr:
+                        children_by_strkorr.setdefault(strkorr, []).append(tr)
+
                 for parent_tr_no in self.selected_trs:
-                    parent_obj = next(
-                        (
-                            tr
-                            for tr in raw_tr_data
-                            if (tr.get("TRKORR") or tr.get("trkorr")) == parent_tr_no
-                        ),
-                        None,
-                    )
+                    parent_obj = tr_by_trkorr.get(parent_tr_no)
                     if not parent_obj:
                         continue
                     merged_objects = list(
@@ -197,11 +200,7 @@ class AnalyzeGuardianView(APIView):
                     merged_keys = list(
                         parent_obj.get("keys", parent_obj.get("KEYS", []))
                     )
-                    children = [
-                        tr
-                        for tr in raw_tr_data
-                        if (tr.get("STRKORR") or tr.get("strkorr")) == parent_tr_no
-                    ]
+                    children = children_by_strkorr.get(parent_tr_no, [])
                     for child in children:
                         merged_objects.extend(
                             child.get("objects", child.get("OBJECTS", []))
