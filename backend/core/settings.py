@@ -8,6 +8,7 @@ Observability: docs/LLM_BUDGETS.md, docs/API_CONTRACT.md (see docs/README.md).
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -15,8 +16,13 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security: prefer env; fallback for local dev only
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-dev-only-change-in-production")
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "django-insecure-dev-only-change-in-production"
+    else:
+        raise ImproperlyConfigured("The SECRET_KEY setting must not be empty in production.")
 ALLOWED_HOSTS = [
     h.strip()
     for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")

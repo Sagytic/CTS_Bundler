@@ -19,7 +19,11 @@ jobs:
           cache-dependency-path: backend/requirements.txt
       - run: pip install -r requirements.txt
       - run: python manage.py check
+        env:
+          SECRET_KEY: "dummy-key-for-ci-tests"
       - run: pytest api/tests -q --tb=short
+        env:
+          SECRET_KEY: "dummy-key-for-ci-tests"
 
   frontend:
     runs-on: ubuntu-latest
