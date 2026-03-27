@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import json
 import re
 import threading
 import time
 from collections import Counter
+from asgiref.sync import sync_to_async
 from types import SimpleNamespace
 from typing import TypedDict
 
@@ -813,7 +815,7 @@ class AnalyzeGuardianView(APIView):
             )
             print(f"🔥 [Error] {e}")
 
-    def _stream_generator(self, app, initial_state):
+    async def _stream_generator(self, app, initial_state):
         self.progress["step"] = "fetch_data"
         self.progress["label"] = "시작 중..."
         t = threading.Thread(target=self._run_invoke, args=(app, initial_state))
@@ -827,7 +829,7 @@ class AnalyzeGuardianView(APIView):
             if cur != last_sent:
                 last_sent = dict(cur)
                 yield json.dumps(cur, ensure_ascii=False) + "\n"
-            time.sleep(0.25)
+            await asyncio.sleep(0.25)
         reply = "보고서 생성 실패"
         raw_state: dict = {}
         if self.result_holder:
@@ -839,7 +841,7 @@ class AnalyzeGuardianView(APIView):
         raw_state_out = {**raw_state, "pipeline_summary": pipeline_summary}
         if self.persist_report:
             try:
-                save_deploy_report_record(
+                await sync_to_async(save_deploy_report_record)(
                     request_id=str(self.req_id),
                     user_id=str(self.user_id or ""),
                     user_input=str(self.user_input or ""),
