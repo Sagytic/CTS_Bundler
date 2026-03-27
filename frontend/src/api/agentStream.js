@@ -3,7 +3,7 @@ import { cleanAgentReplyText } from '../utils/agentReplyCleanup'
 
 /**
  * POST /api/agent/ with stream:true — UTF-8 텍스트 청크 + 마지막에 \x1e + JSON 메타(steps, react_used_tools).
- * @param {object} payload message, include_steps, user_id
+ * @param {object} payload message, include_steps
  * @param {{ onDelta: (displayText: string) => void, signal?: AbortSignal }} opts
  * @returns {Promise<{ reply: string, steps: array, react_used_tools: number, error?: string }>}
  */

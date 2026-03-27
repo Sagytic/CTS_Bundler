@@ -277,8 +277,7 @@ class AgentChatView(APIView):
             )
 
         sap_user_id = (
-            request.data.get("user_id")
-            or request.data.get("sap_user_id")
+            request.session.get("user_id")
             or ""
         )
         sap_user_id = str(sap_user_id).strip()

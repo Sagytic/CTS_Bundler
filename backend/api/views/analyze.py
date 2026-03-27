@@ -96,7 +96,7 @@ class AnalyzeGuardianView(APIView):
 
     def post(self, request: Request) -> StreamingHttpResponse:
         self.user_input = request.data.get("message", "")
-        self.user_id = request.data.get("user_id", "")
+        self.user_id = request.session.get("user_id", "")
         self.selected_trs = request.data.get("selected_trs", [])
         self.req_id = getattr(request, "request_id", "-")
         self.persist_report = should_persist(request.data)

@@ -116,7 +116,8 @@ function App() {
     if (!loginId.trim()) return;
     setIsLoggingIn(true);
     try {
-      const res = await api.get('/api/transports/', { params: { user_id: loginId } });
+      await api.post('/api/login/', { user_id: loginId });
+      const res = await api.get('/api/transports/');
       const allTrs = res.data.transports || [];
       const mainTrs = filterMainTransports(allTrs);
       setRawTrData(allTrs);
@@ -145,7 +146,7 @@ function App() {
     setAnalyzerResponse('');
     setExpandedTr(null);
     try {
-      const res = await api.get('/api/transports/', { params: { user_id: userId } });
+      const res = await api.get('/api/transports/');
       const allTrs = res.data.transports || [];
       setRawTrData(allTrs);
       setTrList(filterMainTransports(allTrs));
@@ -168,7 +169,6 @@ function App() {
         {
           message: textToSend,
           include_steps: true,
-          ...(userId?.trim() ? { user_id: userId.trim() } : {}),
         },
         {
           // 중간 토큰에 TR 목록·도구 원문이 먼저 보이는 문제 방지: 완료 후 한 번에 표시(스피너만 유지)
@@ -236,7 +236,7 @@ function App() {
     let replyToStore = null;
     try {
       replyToStore = await streamDeployAnalysis(
-        { message: '선택된 TR 분석', user_id: userId, selected_trs: trsSnapshot },
+        { message: '선택된 TR 분석', selected_trs: trsSnapshot },
         {
           setAnalyzeProgress,
           setAnalyzeCompletedSteps,
