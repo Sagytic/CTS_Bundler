@@ -11,6 +11,7 @@ from api.views import (
     DeployReportHistoryListView,
     DependencyEdgesView,
     DependencyGraphView,
+    LoginView,
     SAPChatRAGView,
     SAPChatView,
     SapTestView,
@@ -23,6 +24,7 @@ from api.views.agent import AgentChatView  # not in __all__ to avoid circular de
 from api.views.usage_stats import LLMUsageStatsResetView, LLMUsageStatsView
 
 urlpatterns = [
+    path("login/", LoginView.as_view(), name="login"),
     path("analyze/", AnalyzeGuardianView.as_view(), name="analyze"),
     path("sap-test/", SapTestView.as_view(), name="sap-test"),
     path("transports/", TRListView.as_view(), name="transport-list"),

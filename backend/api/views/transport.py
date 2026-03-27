@@ -30,14 +30,14 @@ MOCK_TRANSPORTS_TEMPLATE = [
 
 
 class TRListView(APIView):
-    """GET /api/transports/?user_id=<sap_user_id>. Returns list of transports."""
+    """GET /api/transports/. Returns list of transports for the authenticated user."""
 
     def get(self, request: Request) -> Response:
-        user_id = (request.query_params.get("user_id") or "").strip()
+        user_id = request.session.get("user_id")
         if not user_id:
             return Response(
-                {"error": "user_id is required"},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"error": "Authentication required"},
+                status=status.HTTP_401_UNAUTHORIZED,
             )
 
         result = fetch_recent_transports_via_http(user_id=user_id)

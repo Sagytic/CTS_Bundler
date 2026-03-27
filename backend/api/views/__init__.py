@@ -7,6 +7,7 @@ from .ai_report_history import (
     DeployReportHistoryListView,
 )
 from .analyze import AnalyzeGuardianView
+from .auth import LoginView
 from .chat import SAPChatView
 from .chat_rag import SAPChatRAGView
 from .code_review import AICodeReviewView
@@ -19,6 +20,7 @@ from .usage_stats import LLMUsageStatsResetView, LLMUsageStatsView
 __all__ = [
     "AdtWriteView",
     "AnalyzeGuardianView",
+    "LoginView",
     "AICodeReviewView",
     "CodeReviewHistoryDetailView",
     "CodeReviewHistoryListView",
