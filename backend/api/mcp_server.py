@@ -8,6 +8,7 @@ Run (stdio, for Cursor):
 Run (Streamable HTTP, optional):
   cd backend && python -m api.mcp_server --transport streamable-http --port 8020
 """
+import os
 import sys
 from pathlib import Path
 
@@ -15,7 +16,7 @@ from pathlib import Path
 _backend_root = Path(__file__).resolve().parent
 if str(_backend_root) not in sys.path:
     sys.path.insert(0, str(_backend_root))
-sys.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 
 import django
 django.setup()
@@ -33,7 +34,7 @@ def _get_mcp():
         from fastmcp import FastMCP
     return FastMCP(
         "CTS Bundler",
-        description="SAP CTS Bundler: TR 목록, 종속성 그래프, 티켓 매핑, RAG 검색",
+        instructions="SAP CTS Bundler: TR 목록, 종속성 그래프, 티켓 매핑, RAG 검색",
     )
 
 
