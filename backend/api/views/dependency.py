@@ -39,27 +39,13 @@ class DependencyGraphView(APIView):
     def post(self, request: Request) -> Response:
         return self._process_graph(request)
 
-    def _process_graph(self, request: Request) -> Response:
-        target_obj = request.GET.get("target_obj") or (request.data or {}).get("target_obj")
-        expand_node = request.GET.get("expand_node") or (request.data or {}).get("expand_node")
-
-        effective_target = (expand_node or target_obj or "").strip().upper()
-        if not effective_target:
-            return Response(
-                {"error": "target_obj 또는 expand_node 파라미터가 필요합니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        is_expand_request = bool(expand_node and expand_node.strip())
-
+    def _build_graph(self, effective_target: str, is_expand_request: bool) -> tuple[dict, list]:
+        """Fetch dependencies from DB and build raw graph nodes and links."""
         direct_deps = DependencySnapshot.objects.filter(source_obj=effective_target)
         backward_deps = DependencySnapshot.objects.filter(target_obj=effective_target)
 
         if not direct_deps.exists() and not backward_deps.exists():
-            return Response(
-                {"error": f"[{effective_target}] 오브젝트를 찾을 수 없거나 종속성 데이터가 없습니다."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            return None, None
 
         raw_links = set()
         nodes_dict = {}
@@ -115,29 +101,10 @@ class DependencyGraphView(APIView):
                     raw_links.add((dep.source_obj, dep.target_obj))
 
         raw_links_list = [{"source": s, "target": t} for s, t in raw_links]
+        return nodes_dict, raw_links_list
 
-        if is_expand_request:
-            return Response(
-                {
-                    "snapshot_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "nodes": list(nodes_dict.values()),
-                    "links": raw_links_list,
-                    "expand": True,
-                    "expand_node": expand_node.strip().upper(),
-                },
-                status=status.HTTP_200_OK,
-            )
-
-        if len(raw_links_list) < 5:
-            return Response(
-                {
-                    "snapshot_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "nodes": list(nodes_dict.values()),
-                    "links": raw_links_list,
-                },
-                status=status.HTTP_200_OK,
-            )
-
+    def _filter_graph_with_llm(self, request: Request, effective_target: str, nodes_dict: dict, raw_links_list: list) -> tuple[list, list]:
+        """Use LLM to filter and improve the visual layout of the dependency graph."""
         try:
             llm = AzureChatOpenAI(
                 azure_deployment=azure_openai_map_filter_deployment(),
@@ -169,18 +136,46 @@ class DependencyGraphView(APIView):
                 result_text = result_text[3:-3].strip()
 
             final_data = json.loads(result_text)
+            return final_data.get("nodes", []), final_data.get("links", [])
 
+        except Exception as e:
+            _log.warning("dependency_map_filter failed: %s", e, exc_info=True)
+            return list(nodes_dict.values()), raw_links_list
+
+    def _process_graph(self, request: Request) -> Response:
+        target_obj = request.GET.get("target_obj") or (request.data or {}).get("target_obj")
+        expand_node = request.GET.get("expand_node") or (request.data or {}).get("expand_node")
+
+        effective_target = (expand_node or target_obj or "").strip().upper()
+        if not effective_target:
+            return Response(
+                {"error": "target_obj 또는 expand_node 파라미터가 필요합니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        is_expand_request = bool(expand_node and expand_node.strip())
+
+        nodes_dict, raw_links_list = self._build_graph(effective_target, is_expand_request)
+
+        if nodes_dict is None and raw_links_list is None:
+            return Response(
+                {"error": f"[{effective_target}] 오브젝트를 찾을 수 없거나 종속성 데이터가 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if is_expand_request:
             return Response(
                 {
                     "snapshot_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "nodes": final_data.get("nodes", []),
-                    "links": final_data.get("links", []),
+                    "nodes": list(nodes_dict.values()),
+                    "links": raw_links_list,
+                    "expand": True,
+                    "expand_node": expand_node.strip().upper(),
                 },
                 status=status.HTTP_200_OK,
             )
 
-        except Exception as e:
-            _log.warning("dependency_map_filter failed: %s", e, exc_info=True)
+        if len(raw_links_list) < 5:
             return Response(
                 {
                     "snapshot_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -189,6 +184,17 @@ class DependencyGraphView(APIView):
                 },
                 status=status.HTTP_200_OK,
             )
+
+        nodes, links = self._filter_graph_with_llm(request, effective_target, nodes_dict, raw_links_list)
+
+        return Response(
+            {
+                "snapshot_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "nodes": nodes,
+                "links": links,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class SnapshotUpdateView(APIView):
