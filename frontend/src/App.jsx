@@ -264,7 +264,7 @@ function App() {
     }
   };
 
-  /** 승인된 행의 📄 레포트: 해당 TR이 포함된 가장 최근 심의 배치 레포트 표시 */
+  /** 승인된 행의 레포트: 해당 TR이 포함된 가장 최근 심의 배치 레포트 표시 */
   const openDeployReportForTr = (trkorr) => {
     const entry = findLatestDeployReportForTr(trkorr, deployCommitteeReports);
     if (!entry?.markdown) {
