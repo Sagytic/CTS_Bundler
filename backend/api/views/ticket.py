@@ -74,7 +74,7 @@ class TicketInfoView(APIView):
 
 
 class TicketMappingUpsertView(APIView):
-    """POST /api/ticket-mapping/. Create or update TR ↔ ticket mapping."""
+    """POST /api/ticket-mapping/. TR과 티켓 매핑을 생성하거나 업데이트합니다."""
 
     def post(self, request: Request) -> Response:
         trkorr = (request.data.get("trkorr") or "").strip()
